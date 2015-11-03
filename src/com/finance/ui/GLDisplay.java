@@ -109,6 +109,10 @@ public class GLDisplay implements KeyListener {
 	 */
 	private int count = Constants.BAR_SHOW_NUM;
 	/**
+	 * 显示十字线
+	 */
+	private boolean showTip;
+	/**
 	 * plot中K线开始位置
 	 */
 	private int head;
@@ -225,7 +229,7 @@ public class GLDisplay implements KeyListener {
 
 			} else {
 				// 放大
-				zoomIn(e);
+				zoomOut(e);
 			}
 			break;
 		case SWT.ARROW_DOWN:
@@ -234,7 +238,7 @@ public class GLDisplay implements KeyListener {
 
 			} else {
 				// 缩小
-				zoomOut(e);
+				zoomIn(e);
 			}
 
 			break;
@@ -243,8 +247,12 @@ public class GLDisplay implements KeyListener {
 			if (e.stateMask == SWT.CTRL) {
 
 			} else {
-				// 左翻页
-				left(e);
+				if (showTip) {
+
+				} else {
+					// 左翻页
+					left(e);
+				}
 			}
 
 			break;
@@ -253,8 +261,12 @@ public class GLDisplay implements KeyListener {
 			if (e.stateMask == SWT.CTRL) {
 
 			} else {
-				// 右翻页
-				right(e);
+				if (showTip) {
+
+				} else {
+					// 右翻页
+					right(e);
+				}
 			}
 
 			break;
@@ -493,6 +505,7 @@ public class GLDisplay implements KeyListener {
 
 		int hvol = Integer.MIN_VALUE;
 		int lvol = Integer.MAX_VALUE;
+		this.deal = 0;
 		// 刷新区域最大最小值
 		for (int i = head; i <= tail; i++) {
 			Bar bar = bars.get(i);
@@ -744,6 +757,21 @@ public class GLDisplay implements KeyListener {
 	 */
 	public float getSpan() {
 		return span;
+	}
+
+	/**
+	 * @return the showTip
+	 */
+	public boolean isShowTip() {
+		return showTip;
+	}
+
+	/**
+	 * @param showTip
+	 *            the showTip to set
+	 */
+	public void setShowTip(boolean showTip) {
+		this.showTip = showTip;
 	}
 
 	/**

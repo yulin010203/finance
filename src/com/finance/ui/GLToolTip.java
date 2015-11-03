@@ -126,6 +126,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 	@Override
 	public void mouseDoubleClick(MouseEvent e) {
 		draw = !draw;
+		display.setShowTip(draw);
 		if (draw && !bars.isEmpty()) {
 			// 转化为左下角起始坐标(0,0)
 			int len = bars.size() - 1;
