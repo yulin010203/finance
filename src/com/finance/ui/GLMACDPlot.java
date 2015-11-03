@@ -75,7 +75,11 @@ public class GLMACDPlot implements GLEventListener {
 		gl.glColor3f(0.5f, 0.5f, 0.5f);
 		gl.glBegin(GL2.GL_LINE_STRIP);
 		for (int i = head; i <= tail; i++) {
-			float[] v = macds.get(i).getDiff();
+			MACD macd = macds.get(i);
+			if (macd == null) {
+				continue;
+			}
+			float[] v = macd.getDiff();
 			gl.glVertex2f(v[0], v[1]);
 		}
 		gl.glEnd();
@@ -90,7 +94,11 @@ public class GLMACDPlot implements GLEventListener {
 		gl.glColor3f(1.0f, 1.0f, 0.0f);
 		gl.glBegin(GL2.GL_LINE_STRIP);
 		for (int i = head; i <= tail; i++) {
-			float[] v = macds.get(i).getDeaf();
+			MACD macd = macds.get(i);
+			if (macd == null) {
+				continue;
+			}
+			float[] v = macd.getDeaf();
 			gl.glVertex2f(v[0], v[1]);
 		}
 		gl.glEnd();
@@ -105,7 +113,11 @@ public class GLMACDPlot implements GLEventListener {
 		gl.glColor3f(1.0f, 1.0f, 1.0f);
 		gl.glBegin(GL2.GL_LINES);
 		for (int i = head; i <= tail; i++) {
-			float[] v = macds.get(i).getDelf();
+			MACD macd = macds.get(i);
+			if (macd == null) {
+				continue;
+			}
+			float[] v = macd.getDelf();
 			if (v[1] >= 0) {
 				gl.glColor3f(0.7f, 0, 0);
 			} else {

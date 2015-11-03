@@ -68,7 +68,7 @@ public class GLCJLPlot implements GLEventListener {
 	}
 
 	/**
-	 * @param gl 
+	 * @param gl
 	 * @param head
 	 * @param tail
 	 */
@@ -76,10 +76,13 @@ public class GLCJLPlot implements GLEventListener {
 		gl.glColor3f(0.5f, 0.5f, 0.5f);
 		gl.glBegin(GL2.GL_LINE_STRIP);
 		for (int i = head; i <= tail; i++) {
-			float[] v = glcjls.get(i).getVolf();
+			GLCJL cjl = glcjls.get(i);
+			if (cjl == null) {
+				continue;
+			}
+			float[] v = cjl.getVolf();
 			gl.glVertex2f(v[0], v[1]);
 		}
 		gl.glEnd();
 	}
-
 }

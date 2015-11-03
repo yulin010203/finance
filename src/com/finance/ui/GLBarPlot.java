@@ -85,7 +85,11 @@ public class GLBarPlot implements GLEventListener {
 		int head = display.getHead();
 		int tail = display.getTail();
 		for (int i = head; i <= tail; i++) {
-			glbars.get(i).refresh(gl);
+			GLBar bar = glbars.get(i);
+			if (bar == null) {
+				continue;
+			}
+			bar.refresh(gl);
 		}
 		refresh(gl, head, tail);
 		gl.glFlush();
@@ -103,7 +107,11 @@ public class GLBarPlot implements GLEventListener {
 			gl.glColor3f(color[0], color[1], color[2]);
 			gl.glBegin(GL2.GL_LINE_STRIP);
 			for (int i = head; i <= tail; i++) {
-				float[] v = list.get(i).getMaf();
+				MA ma = list.get(i);
+				if (ma == null) {
+					continue;
+				}
+				float[] v = ma.getMaf();
 				gl.glVertex2f(v[0], v[1]);
 			}
 			gl.glEnd();
