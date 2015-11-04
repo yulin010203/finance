@@ -1,0 +1,72 @@
+﻿Merge branch 'master' of https://github.com/yulin010203/finance
+
+Conflicts:
+	bin/.gitignore
+	src/com/finance/core/Constants.java
+	src/com/finance/ui/GLCJLPlot.java
+	src/com/finance/ui/GLDisplay.java
+	src/com/finance/ui/GLMACDPlot.java
+#
+# It looks like you may be committing a merge.
+# If this is not correct, please remove the file
+#	.git/MERGE_HEAD
+# and try again.
+
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+# On branch master
+# Your branch and 'origin/master' have diverged,
+# and have 2 and 1 different commit each, respectively.
+#   (use "git pull" to merge the remote branch into yours)
+#
+# All conflicts fixed but you are still merging.
+#
+# Changes to be committed:
+#	new file:   bin/com/finance/core/Bar.class
+#	new file:   bin/com/finance/core/Bound.class
+#	new file:   bin/com/finance/core/Constants.class
+#	new file:   bin/com/finance/core/MD.class
+#	new file:   bin/com/finance/core/Pointf.class
+#	new file:   bin/com/finance/core/indicator/MA.class
+#	new file:   bin/com/finance/core/indicator/MACD.class
+#	new file:   bin/com/finance/events/ZoomEvent.class
+#	new file:   bin/com/finance/events/ZoomListener.class
+#	new file:   bin/com/finance/ui/GLBackground.class
+#	new file:   bin/com/finance/ui/GLBarPlot.class
+#	new file:   bin/com/finance/ui/GLCJLPlot.class
+#	new file:   bin/com/finance/ui/GLDisplay$MyListener.class
+#	new file:   bin/com/finance/ui/GLDisplay.class
+#	new file:   bin/com/finance/ui/GLMACDPlot.class
+#	new file:   bin/com/finance/ui/GLToolTip.class
+#	new file:   bin/com/finance/ui/PlotBase.class
+#	new file:   bin/com/finance/ui/bean/Color.class
+#	new file:   bin/com/finance/ui/bean/GLBar$K.class
+#	new file:   bin/com/finance/ui/bean/GLBar.class
+#	new file:   bin/com/finance/ui/bean/GLCJL.class
+#	new file:   bin/com/finance/ui/bean/GLMD.class
+#	new file:   bin/com/finance/util/MathUtil.class
+#	new file:   bin/com/finance/util/TimeUtil.class
+#	new file:   bin/log4j.properties
+#	new file:   bin/test/BarReadTest.class
+#	new file:   bin/test/DoubleBufferSample$1.class
+#	new file:   bin/test/DoubleBufferSample$2.class
+#	new file:   bin/test/DoubleBufferSample.class
+#	new file:   bin/test/Test.class
+#	modified:   src/com/finance/core/Bar.java
+#	modified:   src/com/finance/core/Bound.java
+#	modified:   src/com/finance/core/Constants.java
+#	modified:   src/com/finance/ui/GLBackground.java
+#	modified:   src/com/finance/ui/GLBarPlot.java
+#	modified:   src/com/finance/ui/GLCJLPlot.java
+#	modified:   src/com/finance/ui/GLDisplay.java
+#	modified:   src/com/finance/ui/GLMACDPlot.java
+#	modified:   src/com/finance/ui/GLToolTip.java
+#	modified:   src/com/finance/ui/PlotBase.java
+#	modified:   src/com/finance/ui/bean/GLBar.java
+#	new file:   src/log4j.properties
+#	deleted:    src/test/GLPlot1.java
+#	deleted:    src/test/GLPlot2.java
+#	modified:   src/test/Test.java
+#
+

@@ -49,7 +49,7 @@ public class GLCJLPlot implements GLEventListener {
 	public void display(GLAutoDrawable drawable) {
 		GL2 gl = drawable.getGL().getGL2();
 		// 成交量图区域
-		gl.glViewport(dealBound.getX(), dealBound.getY(), dealBound.getWidth(), dealBound.getHeight());
+		gl.glViewport(dealBound.x, dealBound.y, dealBound.width, dealBound.height);
 		if (glcjls.isEmpty()) {
 			return;
 		}

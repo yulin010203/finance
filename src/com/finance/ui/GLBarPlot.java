@@ -3,6 +3,9 @@ package com.finance.ui;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.finance.core.Bound;
 import com.finance.core.indicator.MA;
 import com.finance.ui.bean.GLBar;
@@ -11,14 +14,12 @@ import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLEventListener;
 
 /**
- * @author YuLin Nov 3, 2015
- */
-/**
  * K线图
  * 
  * @author Chen Lin 2015-10-28
  */
 public class GLBarPlot implements GLEventListener {
+	private static final Log log = LogFactory.getLog(GLBarPlot.class);
 
 	/**
 	 * 画布
@@ -40,19 +41,6 @@ public class GLBarPlot implements GLEventListener {
 	 * MA均线颜色
 	 */
 	private Map<Integer, float[]> colors;
-
-	// /**
-	// * 默认展示条数
-	// */
-	// private int count = Constants.BAR_SHOW_NUM;
-	// /**
-	// * plot中K线开始位置
-	// */
-	// private int head;
-	// /**
-	// * plot中K线结束位置
-	// */
-	// private int tail;
 
 	/**
 	 * @param display
@@ -77,7 +65,7 @@ public class GLBarPlot implements GLEventListener {
 	public void display(GLAutoDrawable drawable) {
 		GL2 gl = drawable.getGL().getGL2();
 		// K线图区域
-		gl.glViewport(barBound.getX(), barBound.getY(), barBound.getWidth(), barBound.getHeight());
+		gl.glViewport(barBound.x, barBound.y, barBound.width, barBound.height);
 		if (glbars.isEmpty()) {
 			return;
 		}
@@ -121,43 +109,5 @@ public class GLBarPlot implements GLEventListener {
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
 	}
-
-	// /**
-	// * 放大
-	// */
-	// public void zoomIn() {
-	// if (count == Constants.BAR_SHOW_NUM_MIN) {
-	// // 已经缩小到最小
-	// return;
-	// }
-	// int num = count / 2 + 1;
-	// if (num < Constants.BAR_SHOW_NUM_MIN) {
-	// count = Constants.BAR_SHOW_NUM_MIN;
-	// } else {
-	// count = num;
-	// }
-	// int mid = (head + tail) / 2;
-	// head = (head + mid) / 2;
-	// tail = head + count;
-	// }
-	//
-	// /**
-	// * 缩小
-	// */
-	// public void zoomOut() {
-	// if (count >= glbars.size()) {
-	// // 已经放大到最大
-	// return;
-	// }
-	// int num = count * 2;
-	// if (num >= glbars.size()) {
-	// num = glbars.size();
-	// }
-	// int h = head - count / 2;
-	// head = h < 0 ? 0 : h;
-	// int t = tail + count / 2;
-	// tail = t > num ? num : t;
-	// count = num;
-	// }
 
 }

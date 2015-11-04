@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.List;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
@@ -38,9 +39,13 @@ public class Test {
 		gl.addGLEventListener(new GLCJLPlot(gl));
 		gl.addGLEventListener(new GLMACDPlot(gl));
 		GLToolTip tip = new GLToolTip(gl);
+		long start = System.currentTimeMillis();
 		List<Bar> bars = BarReadTest.parse(new File("IF0002.txt"), 60 * 1000);
+		long end = System.currentTimeMillis();
+		System.out.println(end - start);
 		gl.addAll(bars);
 		gl.addGLEventListener(tip);
+		gl.addKeyListener(tip);
 		gl.addMouseListener(tip);
 		gl.addMouseMoveListener(tip);
 		gl.start();

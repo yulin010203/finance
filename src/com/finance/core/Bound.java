@@ -1,128 +1,58 @@
 package com.finance.core;
 
 /**
- * 图区大小及位置
+ * 图区大小及坐标(左下角原点)
  */
 public class Bound {
-	private int x;
-	private int y;
-	private int width;
-	private int height;
-	private float delw;
-	private float delh;
-
 	/**
-	 * 获取 xxx
-	 * 
-	 * @return xxx
+	 * 区域的左下角横坐标
 	 */
-	public int getX() {
-		return x;
-	}
+	public int x;
+	/**
+	 * 区域的左下角纵坐标
+	 */
+	public int y;
+	/**
+	 * 区域宽度
+	 */
+	public int width;
+	/**
+	 * 区域高度
+	 */
+	public int height;
+	/**
+	 * GL区域宽度因子(-1,1)
+	 */
+	public float delw;
+	/**
+	 * GL区域高度因子(-1,1)
+	 */
+	public float delh;
 
 	/**
-	 * 设置 xxx
+	 * 把int坐标转化成float坐标(-1.0f,1.0f)
 	 * 
 	 * @param x
-	 *            xxx
+	 *            横坐标
+	 * @return float
 	 */
-	public void setX(int x) {
-		this.x = x;
+	public float toxf(int x) {
+		return x * delw - 1.0f;
 	}
 
 	/**
-	 * 获取 xxx
-	 * 
-	 * @return xxx
-	 */
-	public int getY() {
-		return y;
-	}
-
-	/**
-	 * 设置 xxx
+	 * 把int坐标转化成float坐标(-1.0f,1.0f)
 	 * 
 	 * @param y
-	 *            xxx
+	 *            横坐标
+	 * @return float
 	 */
-	public void setY(int y) {
-		this.y = y;
+	public float toyf(int y) {
+		return y * delh - 1.0f;
 	}
 
-	/**
-	 * 获取 xxx
-	 * 
-	 * @return xxx
-	 */
-	public int getWidth() {
-		return width;
+	@Override
+	public String toString() {
+		return "Bound(" + x + "," + y + "," + width + "," + height + ")";
 	}
-
-	/**
-	 * 设置 xxx
-	 * 
-	 * @param width
-	 *            xxx
-	 */
-	public void setWidth(int width) {
-		this.width = width;
-	}
-
-	/**
-	 * 获取 xxx
-	 * 
-	 * @return xxx
-	 */
-	public int getHeight() {
-		return height;
-	}
-
-	/**
-	 * 设置 xxx
-	 * 
-	 * @param height
-	 *            xxx
-	 */
-	public void setHeight(int height) {
-		this.height = height;
-	}
-
-	/**
-	 * 获取 xxx
-	 * 
-	 * @return xxx
-	 */
-	public float getDelw() {
-		return delw;
-	}
-
-	/**
-	 * 设置 xxx
-	 * 
-	 * @param delw
-	 *            xxx
-	 */
-	public void setDelw(float delw) {
-		this.delw = delw;
-	}
-
-	/**
-	 * 获取 xxx
-	 * 
-	 * @return xxx
-	 */
-	public float getDelh() {
-		return delh;
-	}
-
-	/**
-	 * 设置 xxx
-	 * 
-	 * @param delh
-	 *            xxx
-	 */
-	public void setDelh(float delh) {
-		this.delh = delh;
-	}
-
 }
