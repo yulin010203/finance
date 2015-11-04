@@ -133,14 +133,6 @@ public class GLDisplay implements KeyListener {
 	 * plot中K线结束位置
 	 */
 	private int tail;
-	// /**
-	// * 展示区域最高价
-	// */
-	// private double high;
-	// /**
-	// * 展示区域最低价
-	// */
-	// private double low;
 	/**
 	 * 图区内中间价位
 	 */
@@ -153,6 +145,10 @@ public class GLDisplay implements KeyListener {
 	 * 图区内成交量最大值
 	 */
 	private int deal;
+	/**
+	 * 图区macd最大值
+	 */
+	private double macdMax;
 	/**
 	 * K线宽度(像素)
 	 */
@@ -173,7 +169,6 @@ public class GLDisplay implements KeyListener {
 		this.canvas = GLCanvas.create(shell, SWT.NONE, capabilities, null);
 		addListener();
 		this.animator = new FPSAnimator(canvas, Constants.SHOW_RATE);
-		// this.lock = new ReentrantLock();
 	}
 
 	/**
@@ -318,7 +313,6 @@ public class GLDisplay implements KeyListener {
 			// 已经放大到最大
 			return;
 		}
-		// lock.lock();
 		synchronized (lock) {
 			count = count * 2;
 			if (count > bars.size()) {
@@ -328,17 +322,6 @@ public class GLDisplay implements KeyListener {
 			head = tail - count + 3;
 			refresh();
 		}
-		// int num = count * 2;
-		// if (num >= bars.size()) {
-		// num = bars.size();
-		// }
-		// int h = head - count / 2;
-		// head = h < 0 ? 0 : h;
-		// int t = tail + count / 2;
-		// tail = t > num ? num : t;
-		// count = num;
-		// lock.unlock();
-		// listener.zoomIn(new ZoomEvent(e.widget));
 	}
 
 	/**
@@ -368,6 +351,9 @@ public class GLDisplay implements KeyListener {
 	 * @param e
 	 */
 	public void left(KeyEvent e) {
+		if (head <= 0) {
+			return;
+		}
 		synchronized (lock) {
 			tail = tail - (count - 2);
 			head = head - (count - 2);
@@ -385,6 +371,9 @@ public class GLDisplay implements KeyListener {
 	 * @param e
 	 */
 	public void right(KeyEvent e) {
+		if (tail >= bars.size() - 1) {
+			return;
+		}
 		synchronized (lock) {
 			tail = tail + (count - 2);
 			head = head + (count - 2);
@@ -549,6 +538,7 @@ public class GLDisplay implements KeyListener {
 				mh = m;
 			}
 		}
+		this.macdMax = mh;
 		this.mid = (high + low) / 2.0;
 		this.del = high - low;
 		int mvol = (hvol + lvol) / 2;
@@ -767,6 +757,13 @@ public class GLDisplay implements KeyListener {
 	}
 
 	/**
+	 * @return the macdMax
+	 */
+	public double getMacdMax() {
+		return macdMax;
+	}
+
+	/**
 	 * @return the span
 	 */
 	public float getSpan() {
@@ -789,19 +786,18 @@ public class GLDisplay implements KeyListener {
 	}
 
 	/**
-	 * <<<<<<< HEAD ======= 获取窗口位置
+	 * 获取窗口位置
 	 * 
-	 * @return
+	 * @return Point
 	 */
 	public Point getLocation() {
 		RECT rect = new RECT();
 		OS.GetWindowRect(canvas.handle, rect);
 		return new Point(rect.left, rect.top);
-		// return shell.getLocation();
 	}
 
 	/**
-	 * >>>>>>> be47121c550cf22475209f4333487ed10ce91811 辅助监听器
+	 * 辅助监听器
 	 */
 	private class MyListener implements GLEventListener, KeyListener, ZoomListener {
 		/**
@@ -826,7 +822,7 @@ public class GLDisplay implements KeyListener {
 
 		/**
 		 * @param listener
-		 * @return
+		 * @return GLEventListener
 		 */
 		public GLEventListener removeGLEventListener(final GLEventListener listener) {
 			return glListeners.remove(listener) ? listener : null;

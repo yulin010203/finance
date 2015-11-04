@@ -15,6 +15,7 @@ import com.finance.ui.GLCJLPlot;
 import com.finance.ui.GLDisplay;
 import com.finance.ui.GLMACDPlot;
 import com.finance.ui.GLToolTip;
+import com.finance.util.BufferUtil;
 import com.jogamp.opengl.util.gl2.GLUT;
 
 /**
@@ -40,7 +41,8 @@ public class Test {
 		gl.addGLEventListener(new GLMACDPlot(gl));
 		GLToolTip tip = new GLToolTip(gl);
 		long start = System.currentTimeMillis();
-		List<Bar> bars = BarReadTest.parse(new File("IF0002.txt"), 60 * 1000);
+//		List<Bar> bars = BarReadTest.parse(new File("IF0002.txt"), 60 * 1000);
+		List<Bar> bars = BufferUtil.read(new File("IF0002.dat"));
 		long end = System.currentTimeMillis();
 		System.out.println(end - start);
 		gl.addAll(bars);

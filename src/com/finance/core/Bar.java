@@ -10,6 +10,10 @@ import com.finance.util.TimeUtil;
 public class Bar {
 
 	/**
+	 * 合约编码
+	 */
+	private String code;
+	/**
 	 * 开盘价
 	 */
 	private double open;
@@ -65,6 +69,21 @@ public class Bar {
 	 * K线周期是否结束
 	 */
 	private boolean finished;
+
+	/**
+	 * @return the code
+	 */
+	public String getCode() {
+		return code;
+	}
+
+	/**
+	 * @param code
+	 *            the code to set
+	 */
+	public void setCode(String code) {
+		this.code = code;
+	}
 
 	/**
 	 * 获取xxx

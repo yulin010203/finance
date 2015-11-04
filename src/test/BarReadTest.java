@@ -62,6 +62,7 @@ public class BarReadTest {
 			Bar bar = new Bar();
 			bar.setStartTime(sdf.parse(arr[0]).getTime());
 			bar.setEndTime(bar.getStartTime() + period);
+			bar.setCode(arr[1]);
 			bar.setPeriod(period);
 			bar.setOpen(Double.parseDouble(arr[3]));
 			bar.setClose(Double.parseDouble(arr[4]));

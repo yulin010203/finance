@@ -14,6 +14,7 @@ import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
 import org.eclipse.swt.events.MouseMoveListener;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.widgets.Event;
 
 import com.finance.core.Bar;
 import com.finance.core.Bound;
@@ -146,11 +147,29 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 	@Override
 	public void keyPressed(KeyEvent e) {
 		switch (e.keyCode) {
+		case SWT.ARROW_UP:
+			// 单按上键
+			if (draw && e.stateMask != SWT.CTRL) {
+				Event event = createEvent(point.x, height - point.y, e);
+				mouseMove(new MouseEvent(event));
+			}
+			break;
+		case SWT.ARROW_DOWN:
+			// 单按下键
+			if (draw && e.stateMask != SWT.CTRL) {
+				Event event = createEvent(point.x, height - point.y, e);
+				mouseMove(new MouseEvent(event));
+			}
+			break;
 		case SWT.ARROW_LEFT:
-			// 同时按下Ctrl键
+			// 单按左键
 			if (draw && e.stateMask != SWT.CTRL) {
 				try {
 					if (this.index == display.getHead()) {
+						if (display.getHead() <= 0) {
+							log.info("已经到最左边，不进行右翻页:" + index);
+							break;
+						}
 						log.info("当前十字线在最左边，进行左翻页:" + index);
 						display.left(e);
 						this.index = display.getTail() + 1;
@@ -161,7 +180,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 					}
 					float[] v = glBar.getClosef();
 					Point p = display.getLocation();
-					int x = (int) ((v[0] + 1.0f) / barBound.delw + Constants.LFET_SPAN + p.x);
+					int x = (int) ((v[0] + 1.0f) / barBound.delw + Constants.LFET_SPAN + p.x) - 1;
 					int y = (int) (barBound.height - (v[1] + 1.0f) / barBound.delh + Constants.UP_SPAN + p.y) + 2;
 					new Robot().mouseMove(x, y);
 				} catch (AWTException e1) {
@@ -169,10 +188,14 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 			}
 			break;
 		case SWT.ARROW_RIGHT:
-			// 同时按下Ctrl键
+			// 单按右键
 			if (draw && e.stateMask != SWT.CTRL) {
 				try {
 					if (this.index == display.getTail()) {
+						if (display.getTail() >= bars.size() - 1) {
+							log.info("已经到最右边，不进行右翻页:" + index);
+							break;
+						}
 						log.info("当前十字线在最右边，进行右翻页:" + index);
 						display.right(e);
 						this.index = display.getHead() - 1;
@@ -240,6 +263,24 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 		int index = display.getHead() + (int) ((point.x - Constants.LFET_SPAN) / display.getSpan());
 		this.index = index > len ? len : index;
 		this.bar = bars.get(this.index);
+	}
+
+	/**
+	 * 创造事件
+	 * 
+	 * @param x
+	 * @param y
+	 * @return
+	 */
+	private Event createEvent(int x, int y, KeyEvent e) {
+		Event event = new Event();
+		event.widget = e.widget;
+		event.display = e.display;
+		event.data = e.data;
+		event.type = SWT.MouseMove;
+		event.x = x;
+		event.y = y;
+		return event;
 	}
 
 	/**
@@ -424,10 +465,17 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 			gl.glEnd();
 
 			gl.glColor3f(1.0f, 1.0f, 1.0f);
+			float xf = toxf(detailBound.x - Constants.TIP_YVALUE_WIDTH + Constants.SHOW_VALUE_SPAN);
 			if (point.y > barBound.y) {
 				// 显示Y值
-				gl.glRasterPos2f(toxf(detailBound.x - Constants.TIP_YVALUE_WIDTH + Constants.SHOW_VALUE_SPAN), toyf(y1 + Constants.SHOW_VALUE_SPAN));
-				glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, Double.toString(MathUtil.round(getYValue(point.y - barBound.y), 2)));
+				gl.glRasterPos2f(xf, toyf(y1 + Constants.SHOW_VALUE_SPAN));
+				glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, Double.toString(MathUtil.round(getBarValue(point.y - barBound.y), 2)));
+			} else if (point.y > dealBound.y) {
+				gl.glRasterPos2f(xf, toyf(y1 + Constants.SHOW_VALUE_SPAN));
+				glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, Integer.toString(getCJLValue(point.y - dealBound.y)));
+			} else if (point.y > Constants.DOWN_SPAN) {
+				gl.glRasterPos2f(xf, toyf(y1 + Constants.SHOW_VALUE_SPAN));
+				glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, Double.toString(MathUtil.round(getMACDValue(point.y - Constants.DOWN_SPAN), 3)));
 			}
 			gl.glRasterPos2f(toxf(x1 + Constants.SHOW_VALUE_SPAN), toyf(Constants.SHOW_VALUE_SPAN));
 			glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, bar.date2Str());
@@ -440,9 +488,28 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 	 * @param y
 	 * @return y
 	 */
-	private double getYValue(int y) {
-		float v = y * barBound.delh - 1.0f;
-		return display.getMid() + v * display.getDel() * 0.5 + 1.0;
+	private double getBarValue(int y) {
+		return display.getMid() + dealBound.toyf(y) * display.getDel() * 0.5;
+	}
+
+	/**
+	 * 获取十字线对应的成交量
+	 * 
+	 * @param y
+	 * @return y
+	 */
+	private int getCJLValue(int y) {
+		return (int) (display.getDeal() * (dealBound.toyf(y) + 1.0f) * 0.5);
+	}
+
+	/**
+	 * 获取十字线对应的macd值
+	 * 
+	 * @param y
+	 * @return y
+	 */
+	private double getMACDValue(int y) {
+		return display.getMacdMax() * macdBound.toyf(y);
 	}
 
 	/**
