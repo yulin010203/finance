@@ -1,9 +1,15 @@
 package com.finance.ui;
 
-import java.text.SimpleDateFormat;
+import java.awt.AWTException;
+import java.awt.Robot;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.KeyEvent;
+import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
 import org.eclipse.swt.events.MouseMoveListener;
@@ -14,6 +20,7 @@ import com.finance.core.Bound;
 import com.finance.core.Constants;
 import com.finance.core.indicator.MA;
 import com.finance.core.indicator.MACD;
+import com.finance.ui.bean.GLBar;
 import com.finance.ui.bean.GLCJL;
 import com.finance.util.MathUtil;
 import com.jogamp.opengl.GL2;
@@ -24,14 +31,24 @@ import com.jogamp.opengl.util.gl2.GLUT;
 /**
  * @author Chen Lin 2015-10-30
  */
-public class GLToolTip extends PlotBase implements GLEventListener, MouseListener, MouseMoveListener {
+public class GLToolTip extends PlotBase implements GLEventListener, KeyListener, MouseListener, MouseMoveListener {
+	private static final Log log = LogFactory.getLog(GLToolTip.class);
 	/**
-	 * 是否图区大小初始化
+	 * K线图区域
 	 */
-	private Bound barBound;
-	private Bound dealBound;
-	private Bound macdBound;
-	private Bound detailBound;
+	private Bound barBound = new Bound();
+	/**
+	 * 成交量图区域
+	 */
+	private Bound dealBound = new Bound();
+	/**
+	 * MACD图区域
+	 */
+	private Bound macdBound = new Bound();
+	/**
+	 * 明细图区域
+	 */
+	private Bound detailBound = new Bound();
 	/**
 	 * 主图显示
 	 */
@@ -48,6 +65,10 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 	 * K线数据
 	 */
 	private List<Bar> bars;
+	/**
+	 * K线画图数据
+	 */
+	private List<GLBar> glbars;
 	/**
 	 * MA移动平均线
 	 */
@@ -83,6 +104,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 	public GLToolTip(GLDisplay display) {
 		this.display = display;
 		this.bars = display.getBars();
+		this.glbars = display.getGlbars();
 		this.mas = display.getMas();
 		this.colors = display.getColors();
 		this.glcjls = display.getGlcjls();
@@ -95,7 +117,6 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 
 	@Override
 	public void init(GLAutoDrawable drawable) {
-		super.init(drawable.getSurfaceWidth(), drawable.getSurfaceHeight());
 	}
 
 	@Override
@@ -115,17 +136,73 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 		drawBarMessage(gl);
 		drawCJLMessage(gl);
 		drawMACDMessage(gl);
-		super.init(drawable.getSurfaceWidth(), drawable.getSurfaceHeight());
+		gl.glViewport(0, 0, drawable.getSurfaceWidth(), drawable.getSurfaceHeight());
 	}
 
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
-		super.init(width, height);
+	}
+
+	@Override
+	public void keyPressed(KeyEvent e) {
+		switch (e.keyCode) {
+		case SWT.ARROW_LEFT:
+			// 同时按下Ctrl键
+			if (draw && e.stateMask != SWT.CTRL) {
+				try {
+					if (this.index == display.getHead()) {
+						log.info("当前十字线在最左边，进行左翻页:" + index);
+						display.left(e);
+						this.index = display.getTail() + 1;
+					}
+					GLBar glBar = glbars.get(this.index - 1);
+					if (glBar == null) {
+						break;
+					}
+					float[] v = glBar.getClosef();
+					Point p = display.getLocation();
+					int x = (int) ((v[0] + 1.0f) / barBound.delw + Constants.LFET_SPAN + p.x);
+					int y = (int) (barBound.height - (v[1] + 1.0f) / barBound.delh + Constants.UP_SPAN + p.y) + 2;
+					new Robot().mouseMove(x, y);
+				} catch (AWTException e1) {
+				}
+			}
+			break;
+		case SWT.ARROW_RIGHT:
+			// 同时按下Ctrl键
+			if (draw && e.stateMask != SWT.CTRL) {
+				try {
+					if (this.index == display.getTail()) {
+						log.info("当前十字线在最右边，进行右翻页:" + index);
+						display.right(e);
+						this.index = display.getHead() - 1;
+					}
+					GLBar glBar = glbars.get(this.index + 1);
+					if (glBar == null) {
+						break;
+					}
+					float[] v = glBar.getClosef();
+					Point p = display.getLocation();
+					int x = (int) ((v[0] + 1.0f) / barBound.delw + Constants.LFET_SPAN + p.x);
+					int y = (int) (barBound.height - (v[1] + 1.0f) / barBound.delh + Constants.UP_SPAN + p.y) + 2;
+					new Robot().mouseMove(x, y);
+				} catch (AWTException e1) {
+				}
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
 	}
 
 	@Override
 	public void mouseDoubleClick(MouseEvent e) {
 		draw = !draw;
+		display.setShowTip(draw);
 		if (draw && !bars.isEmpty()) {
 			// 转化为左下角起始坐标(0,0)
 			int len = bars.size() - 1;
@@ -150,7 +227,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 			return;
 		}
 		// 此时还未转变为左下角原点
-		if (e.x < barBound.getX() || e.x > detailBound.getX() || e.y < Constants.UP_SPAN) {
+		if (e.x < barBound.x || e.x > detailBound.x || e.y < Constants.UP_SPAN) {
 			return;
 		}
 		int len = bars.size() - 1;
@@ -177,7 +254,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 			x1 = point.x + Constants.TIP_BAR_VALUE_SPAN;
 			x2 = point.x + Constants.TIP_BAR_VALUE_WIDTH + Constants.TIP_BAR_VALUE_SPAN;
 			// x轴超出界限
-			if (x2 > detailBound.getX()) {
+			if (x2 > detailBound.x) {
 				x1 = point.x - Constants.TIP_BAR_VALUE_WIDTH - Constants.TIP_BAR_VALUE_SPAN;
 				x2 = point.x - Constants.TIP_BAR_VALUE_SPAN;
 			}
@@ -269,7 +346,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 			gl.glColor3f(0.5f, 0.5f, 0.5f);
 			// 横线
 			gl.glVertex2f(toxf(Constants.LFET_SPAN), toyf(point.y));
-			gl.glVertex2f(toxf(detailBound.getX()), toyf(point.y));
+			gl.glVertex2f(toxf(detailBound.x), toyf(point.y));
 			// 竖线
 			gl.glVertex2f(toxf(point.x), toyf(height - Constants.UP_SPAN));
 			gl.glVertex2f(toxf(point.x), -1.0f);
@@ -290,8 +367,8 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 			x1 = point.x;
 			x2 = x1 + Constants.TIP_DATE_WIDTH;
 			// x轴超出界限
-			if (x2 > detailBound.getX()) {
-				x2 = detailBound.getX();
+			if (x2 > detailBound.x) {
+				x2 = detailBound.x;
 				x1 = x2 - Constants.TIP_DATE_WIDTH;
 			}
 			y1 = point.y;
@@ -307,8 +384,8 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 			yf11 = toyf(Constants.TIP_DATE_HEIGHT);
 			yf12 = -1.0f;
 
-			xf21 = toxf(detailBound.getX() - Constants.TIP_YVALUE_WIDTH);
-			xf22 = toxf(detailBound.getX());
+			xf21 = toxf(detailBound.x - Constants.TIP_YVALUE_WIDTH);
+			xf22 = toxf(detailBound.x);
 			yf21 = toyf(y2);
 			yf22 = toyf(y1);
 
@@ -347,10 +424,10 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 			gl.glEnd();
 
 			gl.glColor3f(1.0f, 1.0f, 1.0f);
-			if (point.y > barBound.getY()) {
+			if (point.y > barBound.y) {
 				// 显示Y值
-				gl.glRasterPos2f(toxf(detailBound.getX() - Constants.TIP_YVALUE_WIDTH + Constants.SHOW_VALUE_SPAN), toyf(y1 + Constants.SHOW_VALUE_SPAN));
-				glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, Double.toString(MathUtil.round(getYValue(point.y - barBound.getY()), 2)));
+				gl.glRasterPos2f(toxf(detailBound.x - Constants.TIP_YVALUE_WIDTH + Constants.SHOW_VALUE_SPAN), toyf(y1 + Constants.SHOW_VALUE_SPAN));
+				glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, Double.toString(MathUtil.round(getYValue(point.y - barBound.y), 2)));
 			}
 			gl.glRasterPos2f(toxf(x1 + Constants.SHOW_VALUE_SPAN), toyf(Constants.SHOW_VALUE_SPAN));
 			glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, bar.date2Str());
@@ -358,11 +435,13 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 	}
 
 	/**
+	 * 获取十字线对应的K线值
+	 * 
 	 * @param y
-	 * @return
+	 * @return y
 	 */
 	private double getYValue(int y) {
-		float v = y * barBound.getDelh() - 1.0f;
+		float v = y * barBound.delh - 1.0f;
 		return display.getMid() + v * display.getDel() * 0.5 + 1.0;
 	}
 
@@ -372,8 +451,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 	 * @param gl
 	 */
 	private void drawBarMessage(GL2 gl) {
-		gl.glViewport(barBound.getX(), barBound.getY(), barBound.getWidth(), barBound.getHeight());
-		super.init(barBound.getWidth(), barBound.getHeight());
+		gl.glViewport(barBound.x, barBound.y, barBound.width, barBound.height);
 		StringBuffer sb = new StringBuffer();
 		sb.append("MA(");
 		for (int n : GLDisplay.MA_N) {
@@ -381,10 +459,10 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 		}
 		sb.delete(sb.length() - 1, sb.length());
 		sb.append(")");
-		float y = toyf(barBound.getHeight() - 2 * Constants.SHOW_VALUE_SPAN);
+		float y = barBound.toyf(barBound.height - 2 * Constants.SHOW_VALUE_SPAN);
 		int x = Constants.SHOW_VALUE_SPAN;
 		gl.glColor3f(1.0f, 1.0f, 0.0f);
-		gl.glRasterPos2f(toxf(Constants.SHOW_VALUE_SPAN), y);
+		gl.glRasterPos2f(barBound.toxf(Constants.SHOW_VALUE_SPAN), y);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, sb.toString());
 		int len = glut.glutBitmapLength(GLUT.BITMAP_HELVETICA_12, sb.toString());
 		x += len + Constants.SHOW_VALUE_SPAN;
@@ -398,7 +476,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 			} else {
 				msg += MathUtil.round(ma.getMa(), 2);
 			}
-			gl.glRasterPos2f(toxf(x), y);
+			gl.glRasterPos2f(barBound.toxf(x), y);
 			glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, msg);
 			x += glut.glutBitmapLength(GLUT.BITMAP_HELVETICA_12, sb.toString());
 		}
@@ -411,16 +489,15 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 	 * @param gl
 	 */
 	private void drawCJLMessage(GL2 gl) {
-		gl.glViewport(dealBound.getX(), dealBound.getY(), dealBound.getWidth(), dealBound.getHeight());
-		super.init(dealBound.getWidth(), dealBound.getHeight());
-		float y = toyf(dealBound.getHeight() - 4 * Constants.SHOW_VALUE_SPAN);
+		gl.glViewport(dealBound.x, dealBound.y, dealBound.width, dealBound.height);
+		float y = dealBound.toyf(dealBound.height - 4 * Constants.SHOW_VALUE_SPAN);
 		gl.glColor3f(1.0f, 1.0f, 0.0f);
-		gl.glRasterPos2f(toxf(Constants.SHOW_VALUE_SPAN), y);
+		gl.glRasterPos2f(dealBound.toxf(Constants.SHOW_VALUE_SPAN), y);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, "CJL ");
 		GLCJL cjl = glcjls.get(index);
 		String msg = " " + cjl.getDealVol() + "  OPID  " + cjl.getVol();
 		gl.glColor3f(1.0f, 1.0f, 1.0f);
-		gl.glRasterPos2f(toxf(7 * Constants.SHOW_VALUE_SPAN), y);
+		gl.glRasterPos2f(dealBound.toxf(7 * Constants.SHOW_VALUE_SPAN), y);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, msg);
 	}
 
@@ -430,25 +507,25 @@ public class GLToolTip extends PlotBase implements GLEventListener, MouseListene
 	 * @param gl
 	 */
 	private void drawMACDMessage(GL2 gl) {
-		gl.glViewport(macdBound.getX(), macdBound.getY(), macdBound.getWidth(), macdBound.getHeight());
-		super.init(macdBound.getWidth(), macdBound.getHeight());
-		float y = toyf(macdBound.getHeight() - 4 * Constants.SHOW_VALUE_SPAN);
+		gl.glViewport(macdBound.x, macdBound.y, macdBound.width, macdBound.height);
+		float y = macdBound.toyf(macdBound.height - 4 * Constants.SHOW_VALUE_SPAN);
 		MACD macd = macds.get(index);
 		int[] n = macd.getN();
 		String msg = "MACD(" + n[0] + "," + n[1] + "," + n[2] + ") ";
 		gl.glColor3f(1.0f, 1.0f, 0.0f);
-		gl.glRasterPos2f(toxf(Constants.SHOW_VALUE_SPAN), y);
+		gl.glRasterPos2f(macdBound.toxf(Constants.SHOW_VALUE_SPAN), y);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, msg);
 
 		int x = Constants.SHOW_VALUE_SPAN + glut.glutBitmapLength(GLUT.BITMAP_HELVETICA_12, msg);
 		msg = "DIFF  " + MathUtil.round(macd.getDif(), 2) + "  ";
 		gl.glColor3f(1.0f, 1.0f, 1.0f);
-		gl.glRasterPos2f(toxf(x), y);
+		gl.glRasterPos2f(macdBound.toxf(x), y);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, msg);
 
 		x += glut.glutBitmapLength(GLUT.BITMAP_HELVETICA_12, msg);
 		gl.glColor3f(1.0f, 1.0f, 0.0f);
-		gl.glRasterPos2f(toxf(x), y);
+		gl.glRasterPos2f(macdBound.toxf(x), y);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, msg);
 	}
+
 }

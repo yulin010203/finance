@@ -2,6 +2,9 @@ package com.finance.ui;
 
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.finance.core.Bound;
 import com.finance.core.indicator.MACD;
 import com.jogamp.opengl.GL2;
@@ -14,6 +17,7 @@ import com.jogamp.opengl.GLEventListener;
  * @author Chen Lin 2015-10-28
  */
 public class GLMACDPlot implements GLEventListener {
+	private static final Log log = LogFactory.getLog(GLMACDPlot.class);
 
 	/**
 	 * 主图显示
@@ -49,7 +53,7 @@ public class GLMACDPlot implements GLEventListener {
 	public void display(GLAutoDrawable drawable) {
 		GL2 gl = drawable.getGL().getGL2();
 		// 成交量图区域
-		gl.glViewport(macdBound.getX(), macdBound.getY(), macdBound.getWidth(), macdBound.getHeight());
+		gl.glViewport(macdBound.x, macdBound.y, macdBound.width, macdBound.height);
 		if (macds.isEmpty()) {
 			return;
 		}
@@ -75,7 +79,11 @@ public class GLMACDPlot implements GLEventListener {
 		gl.glColor3f(0.5f, 0.5f, 0.5f);
 		gl.glBegin(GL2.GL_LINE_STRIP);
 		for (int i = head; i <= tail; i++) {
-			float[] v = macds.get(i).getDiff();
+			MACD macd = macds.get(i);
+			if (macd == null) {
+				continue;
+			}
+			float[] v = macd.getDiff();
 			gl.glVertex2f(v[0], v[1]);
 		}
 		gl.glEnd();
@@ -90,8 +98,11 @@ public class GLMACDPlot implements GLEventListener {
 		gl.glColor3f(1.0f, 1.0f, 0.0f);
 		gl.glBegin(GL2.GL_LINE_STRIP);
 		for (int i = head; i <= tail; i++) {
-			float[] v = macds.get(i).getDeaf();
-			gl.glVertex2f(v[0], v[1]);
+			MACD macd = macds.get(i);
+			if (macd != null) {
+				float[] v = macd.getDeaf();
+				gl.glVertex2f(v[0], v[1]);
+			}
 		}
 		gl.glEnd();
 	}
@@ -105,15 +116,18 @@ public class GLMACDPlot implements GLEventListener {
 		gl.glColor3f(1.0f, 1.0f, 1.0f);
 		gl.glBegin(GL2.GL_LINES);
 		for (int i = head; i <= tail; i++) {
-			float[] v = macds.get(i).getDelf();
-			if (v[1] >= 0) {
-				gl.glColor3f(0.7f, 0, 0);
-			} else {
-				// gl.glColor3f(0.0f, 1.0f, 0.0f);
-				gl.glColor3f(0.0f, 1.0f, 1.0f);
+			MACD macd = macds.get(i);
+			if (macd != null) {
+				float[] v = macd.getDelf();
+				if (v[1] >= 0) {
+					gl.glColor3f(0.7f, 0, 0);
+				} else {
+					// gl.glColor3f(0.0f, 1.0f, 0.0f);
+					gl.glColor3f(0.0f, 1.0f, 1.0f);
+				}
+				gl.glVertex2f(v[0], 0.0f);
+				gl.glVertex2f(v[0], v[1]);
 			}
-			gl.glVertex2f(v[0], 0.0f);
-			gl.glVertex2f(v[0], v[1]);
 		}
 		gl.glEnd();
 	}

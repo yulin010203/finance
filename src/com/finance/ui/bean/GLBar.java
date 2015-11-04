@@ -166,6 +166,19 @@ public class GLBar {
 		// gl2.glFlush();
 	}
 
+	public Bar getBar(){
+		return bar;
+	}
+	/**
+	 * 返回K线收盘价的坐标
+	 * 
+	 * @return
+	 */
+	public float[] getClosef() {
+		float[] v = { k.x2, k.close };
+		return v;
+	}
+
 	/**
 	 * K线对应矩阵
 	 */

@@ -49,7 +49,7 @@ public class GLCJLPlot implements GLEventListener {
 	public void display(GLAutoDrawable drawable) {
 		GL2 gl = drawable.getGL().getGL2();
 		// 成交量图区域
-		gl.glViewport(dealBound.getX(), dealBound.getY(), dealBound.getWidth(), dealBound.getHeight());
+		gl.glViewport(dealBound.x, dealBound.y, dealBound.width, dealBound.height);
 		if (glcjls.isEmpty()) {
 			return;
 		}
@@ -68,7 +68,7 @@ public class GLCJLPlot implements GLEventListener {
 	}
 
 	/**
-	 * @param gl 
+	 * @param gl
 	 * @param head
 	 * @param tail
 	 */
@@ -76,10 +76,13 @@ public class GLCJLPlot implements GLEventListener {
 		gl.glColor3f(0.5f, 0.5f, 0.5f);
 		gl.glBegin(GL2.GL_LINE_STRIP);
 		for (int i = head; i <= tail; i++) {
-			float[] v = glcjls.get(i).getVolf();
+			GLCJL cjl = glcjls.get(i);
+			if (cjl == null) {
+				continue;
+			}
+			float[] v = cjl.getVolf();
 			gl.glVertex2f(v[0], v[1]);
 		}
 		gl.glEnd();
 	}
-
 }

@@ -42,7 +42,7 @@ public class Constants {
 	/**
 	 * 默认展示K线条数
 	 */
-	public static final int BAR_SHOW_NUM = 350;
+	public static final int BAR_SHOW_NUM = 100;
 	/**
 	 * K线宽度比例
 	 */

@@ -20,12 +20,21 @@ import com.jogamp.opengl.util.gl2.GLUT;
 public class GLBackground extends PlotBase implements GLEventListener {
 
 	/**
-	 * 是否图区大小初始化
+	 * K线图区域
 	 */
-	private Bound barBound;
-	private Bound dealBound;
-	private Bound macdBound;
-	private Bound detailBound;
+	private Bound barBound = new Bound();
+	/**
+	 * 成交量图区域
+	 */
+	private Bound dealBound = new Bound();
+	/**
+	 * MACD图区域
+	 */
+	private Bound macdBound = new Bound();
+	/**
+	 * 明细图区域
+	 */
+	private Bound detailBound = new Bound();
 	/**
 	 * 主图显示
 	 */
@@ -74,19 +83,19 @@ public class GLBackground extends PlotBase implements GLEventListener {
 		drawY(gl);
 
 		// K线图区域
-		gl.glViewport(barBound.getX(), barBound.getY(), barBound.getWidth(), barBound.getHeight());
+		gl.glViewport(barBound.x, barBound.y, barBound.width, barBound.height);
 		drawLineStipple(gl, 3);
 
 		// 成交量图区域
-		gl.glViewport(dealBound.getX(), dealBound.getY(), dealBound.getWidth(), dealBound.getHeight());
+		gl.glViewport(dealBound.x, dealBound.y, dealBound.width, dealBound.height);
 		drawLineStipple(gl, 1);
 
 		// MACD图区域
-		gl.glViewport(macdBound.getX(), macdBound.getY(), macdBound.getWidth(), macdBound.getHeight());
+		gl.glViewport(macdBound.x, macdBound.y, macdBound.width, macdBound.height);
 		drawLineStipple(gl, 1);
 
 		// MACD图区域
-		gl.glViewport(detailBound.getX(), detailBound.getY(), detailBound.getWidth(), detailBound.getHeight());
+		gl.glViewport(detailBound.x, detailBound.y, detailBound.width, detailBound.height);
 	}
 
 	@Override
@@ -102,7 +111,7 @@ public class GLBackground extends PlotBase implements GLEventListener {
 	private void drawX(GL2 gl) {
 		float y = toxf(2 * Constants.SHOW_VALUE_SPAN);
 		float x1, x2, x3, x4, x5;
-		int del = barBound.getWidth() / 6;
+		int del = barBound.width / 6;
 		int x = Constants.LFET_SPAN + del;
 		drawline(gl, x);
 		x1 = toxf(x - Constants.DATE_VALUE_WIDTH / 2);
@@ -154,7 +163,7 @@ public class GLBackground extends PlotBase implements GLEventListener {
 		// gl.glEnable(GL2.GL_LINE_STIPPLE);
 		// gl.glBegin(GL2.GL_LINES);
 		// gl.glColor3f(0.4f, 0.4f, 0.4f);
-		// gl.glVertex2f(xf, toyf(barBound.getY()));
+		// gl.glVertex2f(xf, toyf(barBound.y));
 		// gl.glVertex2f(xf, toyf(height - Constants.UP_SPAN));
 		// gl.glDisable(GL2.GL_LINE_STIPPLE);
 		// gl.glEnd();
@@ -168,15 +177,15 @@ public class GLBackground extends PlotBase implements GLEventListener {
 	private void drawY(GL2 gl) {
 		float x1 = toxf(Constants.BAR_LEFT_SPAN);
 		float y1, y2, y3, y4, y5;
-		int del = barBound.getHeight() / 4;
-		int y = barBound.getY() + del - Constants.SHOW_VALUE_SPAN;
+		int del = barBound.height / 4;
+		int y = barBound.y + del - Constants.SHOW_VALUE_SPAN;
 		y1 = toyf(y);
 		y += del;
 		y2 = toyf(y);
 		y += del;
 		y3 = toyf(y);
-		y4 = toyf(dealBound.getY() + dealBound.getHeight() / 2 - Constants.SHOW_VALUE_SPAN);
-		y5 = toyf(Constants.DOWN_SPAN + macdBound.getHeight() / 2 - Constants.SHOW_VALUE_SPAN);
+		y4 = toyf(dealBound.y + dealBound.height / 2 - Constants.SHOW_VALUE_SPAN);
+		y5 = toyf(Constants.DOWN_SPAN + macdBound.height / 2 - Constants.SHOW_VALUE_SPAN);
 		gl.glColor3f(0.5f, 0.5f, 0.5f);
 		gl.glRasterPos2f(x1, y1);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, Double.toString(MathUtil.round(getYValue(-0.5), 1)));
@@ -213,20 +222,20 @@ public class GLBackground extends PlotBase implements GLEventListener {
 		gl.glVertex2f(-1.0f, toyf(height - Constants.UP_SPAN));
 		gl.glVertex2f(toxf(width - Constants.RIGHT_SPAN), toyf(height - Constants.UP_SPAN));
 
-		gl.glVertex2f(toxf(barBound.getX()), toyf(barBound.getY()));
-		gl.glVertex2f(toxf(width - Constants.RIGHT_SPAN), toyf(barBound.getY()));
+		gl.glVertex2f(toxf(barBound.x), toyf(barBound.y));
+		gl.glVertex2f(toxf(width - Constants.RIGHT_SPAN), toyf(barBound.y));
 
-		gl.glVertex2f(toxf(dealBound.getX()), toyf(dealBound.getY()));
-		gl.glVertex2f(toxf(width - Constants.RIGHT_SPAN), toyf(dealBound.getY()));
+		gl.glVertex2f(toxf(dealBound.x), toyf(dealBound.y));
+		gl.glVertex2f(toxf(width - Constants.RIGHT_SPAN), toyf(dealBound.y));
 
-		gl.glVertex2f(toxf(macdBound.getX()), toyf(macdBound.getY()));
-		gl.glVertex2f(1.0f, toyf(macdBound.getY()));
+		gl.glVertex2f(toxf(macdBound.x), toyf(macdBound.y));
+		gl.glVertex2f(1.0f, toyf(macdBound.y));
 
 		gl.glVertex2f(toxf(Constants.LFET_SPAN), toyf(height - Constants.UP_SPAN));
 		gl.glVertex2f(toxf(Constants.LFET_SPAN), toyf(Constants.DOWN_SPAN));
 
-		gl.glVertex2f(toxf(detailBound.getX()), 1.0f);
-		gl.glVertex2f(toxf(detailBound.getX()), toyf(detailBound.getY()));
+		gl.glVertex2f(toxf(detailBound.x), 1.0f);
+		gl.glVertex2f(toxf(detailBound.x), toyf(detailBound.y));
 		gl.glEnd();
 	}
 
@@ -260,37 +269,38 @@ public class GLBackground extends PlotBase implements GLEventListener {
 	protected void init(int width, int height) {
 		super.init(width, height);
 		// MACD图区域
-		macdBound.setX(Constants.LFET_SPAN);
-		macdBound.setY(Constants.DOWN_SPAN);
-		macdBound.setWidth(width - Constants.LFET_SPAN - Constants.RIGHT_SPAN);
-		macdBound.setHeight((height - Constants.UP_SPAN - Constants.DOWN_SPAN) / 6);
-		macdBound.setDelw(1.0f / ((macdBound.getWidth() - 1.0f) * 0.5f));
-		macdBound.setDelh(1.0f / ((macdBound.getHeight() - 1.0f) * 0.5f));
+		macdBound.x = Constants.LFET_SPAN;
+		macdBound.y = Constants.DOWN_SPAN;
+		macdBound.width = width - Constants.LFET_SPAN - Constants.RIGHT_SPAN;
+		macdBound.height = (height - Constants.UP_SPAN - Constants.DOWN_SPAN) / 6;
+		macdBound.delw = 1.0f / ((macdBound.width - 1.0f) * 0.5f);
+		macdBound.delh = 1.0f / ((macdBound.height - 1.0f) * 0.5f);
 
 		// 成交量图区域
-		dealBound.setWidth(macdBound.getWidth());
-		dealBound.setHeight(macdBound.getHeight());
-		dealBound.setX(Constants.LFET_SPAN);
-		dealBound.setY(Constants.DOWN_SPAN + macdBound.getHeight());
-		dealBound.setDelw(1.0f / ((dealBound.getWidth() - 1.0f) * 0.5f));
-		dealBound.setDelh(1.0f / ((dealBound.getHeight() - 1.0f) * 0.5f));
+		dealBound.width = macdBound.width;
+		dealBound.height = macdBound.height;
+		dealBound.x = Constants.LFET_SPAN;
+		dealBound.y = Constants.DOWN_SPAN + macdBound.height;
+		dealBound.delw = 1.0f / ((dealBound.width - 1.0f) * 0.5f);
+		dealBound.delh = 1.0f / ((dealBound.height - 1.0f) * 0.5f);
 
 		// K线图区域
-		barBound.setWidth(macdBound.getWidth());
-		barBound.setHeight(macdBound.getHeight() * 4);
-		barBound.setX(Constants.LFET_SPAN);
-		barBound.setY(Constants.DOWN_SPAN + macdBound.getHeight() + dealBound.getHeight());
-		barBound.setDelw(1.0f / ((barBound.getWidth() - 1.0f) * 0.5f));
-		barBound.setDelh(1.0f / ((barBound.getHeight() - 1.0f) * 0.5f));
+		barBound.width = macdBound.width;
+		barBound.height = macdBound.height * 4;
+		barBound.x = Constants.LFET_SPAN;
+		barBound.y = Constants.DOWN_SPAN + macdBound.height + dealBound.height;
+		barBound.delw = 1.0f / ((barBound.width - 1.0f) * 0.5f);
+		barBound.delh = 1.0f / ((barBound.height - 1.0f) * 0.5f);
 
 		// MACD图区域
-		detailBound.setWidth(Constants.RIGHT_SPAN);
-		detailBound.setHeight(height);
-		detailBound.setX(Constants.LFET_SPAN + barBound.getWidth());
-		detailBound.setY(Constants.DOWN_SPAN);
-		detailBound.setDelw(1.0f / ((detailBound.getWidth() - 1.0f) * 0.5f));
-		detailBound.setDelh(1.0f / ((detailBound.getHeight() - 1.0f) * 0.5f));
+		detailBound.width = Constants.RIGHT_SPAN;
+		detailBound.height = height;
+		detailBound.x = Constants.LFET_SPAN + barBound.width;
+		detailBound.y = Constants.DOWN_SPAN;
+		detailBound.delw = 1.0f / ((detailBound.width - 1.0f) * 0.5f);
+		detailBound.delh = 1.0f / ((detailBound.height - 1.0f) * 0.5f);
 
+		// 刷新坐标数据
 		display.refresh();
 	}
 

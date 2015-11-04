@@ -316,7 +316,7 @@ public class Bar {
 	/**
 	 * 获取当前时间格式
 	 * 
-	 * @return
+	 * @return time
 	 */
 	public String time2Str() {
 		if (timeFormat == null) {
@@ -332,7 +332,7 @@ public class Bar {
 	/**
 	 * 获取当前时间字符串(yyyy/MM/dd HH:mm~HH:mm)
 	 * 
-	 * @return
+	 * @return time
 	 */
 	public String date2Str() {
 		if (format == null) {

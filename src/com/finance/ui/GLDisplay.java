@@ -5,8 +5,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.KeyListener;
@@ -14,6 +15,9 @@ import org.eclipse.swt.events.MouseListener;
 import org.eclipse.swt.events.MouseMoveListener;
 import org.eclipse.swt.events.ShellAdapter;
 import org.eclipse.swt.events.ShellEvent;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.internal.win32.OS;
+import org.eclipse.swt.internal.win32.RECT;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
@@ -43,22 +47,31 @@ import com.jogamp.opengl.util.FPSAnimator;
  * @author Chen Lin 2015-11-2
  */
 public class GLDisplay implements KeyListener {
-
+	private static final Log log = LogFactory.getLog(GLDisplay.class);
 	/**
 	 * 移动平均线指数
 	 */
 	public static final int[] MA_N = { 5, 10, 20, 40, 60 };
 	/**
-	 * 是否图区大小初始化
+	 * K线图区域
 	 */
 	private Bound barBound = new Bound();
+	/**
+	 * 成交量图区域
+	 */
 	private Bound dealBound = new Bound();
+	/**
+	 * MACD图区域
+	 */
 	private Bound macdBound = new Bound();
+	/**
+	 * 明细图区域
+	 */
 	private Bound detailBound = new Bound();
 	/**
 	 * 锁
 	 */
-	private final ReentrantLock lock;
+	// private final ReentrantLock lock;
 	/**
 	 * 窗口
 	 */
@@ -109,6 +122,10 @@ public class GLDisplay implements KeyListener {
 	 */
 	private int count = Constants.BAR_SHOW_NUM;
 	/**
+	 * 显示十字线
+	 */
+	private boolean showTip;
+	/**
 	 * plot中K线开始位置
 	 */
 	private int head;
@@ -140,6 +157,10 @@ public class GLDisplay implements KeyListener {
 	 * K线宽度(像素)
 	 */
 	private float span;
+	/**
+	 * 画面更新锁
+	 */
+	private final Object lock = new Object();
 
 	/**
 	 * @param display
@@ -152,7 +173,7 @@ public class GLDisplay implements KeyListener {
 		this.canvas = GLCanvas.create(shell, SWT.NONE, capabilities, null);
 		addListener();
 		this.animator = new FPSAnimator(canvas, Constants.SHOW_RATE);
-		this.lock = new ReentrantLock();
+		// this.lock = new ReentrantLock();
 	}
 
 	/**
@@ -160,7 +181,8 @@ public class GLDisplay implements KeyListener {
 	 */
 	private void addListener() {
 		canvas.addGLEventListener(listener);
-		canvas.addKeyListener(this);
+		canvas.addKeyListener(listener);
+		listener.addKeyListener(this);
 		shell.addShellListener(new ShellAdapter() {
 			@Override
 			public void shellClosed(ShellEvent e) {
@@ -203,6 +225,21 @@ public class GLDisplay implements KeyListener {
 	/**
 	 * @param listener
 	 */
+	public void addKeyListener(KeyListener listener) {
+		this.listener.addKeyListener(listener);
+	}
+
+	/**
+	 * @param listener
+	 * @return KeyListener
+	 */
+	public KeyListener removeKeyListener(KeyListener listener) {
+		return this.listener.removeKeyListener(listener);
+	}
+
+	/**
+	 * @param listener
+	 */
 	public void addMouseListener(MouseListener listener) {
 		canvas.addMouseListener(listener);
 	}
@@ -223,7 +260,7 @@ public class GLDisplay implements KeyListener {
 
 			} else {
 				// 放大
-				zoomIn(e);
+				zoomOut(e);
 			}
 			break;
 		case SWT.ARROW_DOWN:
@@ -232,7 +269,7 @@ public class GLDisplay implements KeyListener {
 
 			} else {
 				// 缩小
-				zoomOut(e);
+				zoomIn(e);
 			}
 
 			break;
@@ -241,18 +278,22 @@ public class GLDisplay implements KeyListener {
 			if (e.stateMask == SWT.CTRL) {
 
 			} else {
-
+				if (!showTip) {
+					// 左翻页
+					left(e);
+				}
 			}
-
 			break;
 		case SWT.ARROW_RIGHT:
 			// 同时按下Ctrl键
 			if (e.stateMask == SWT.CTRL) {
 
 			} else {
-
+				if (!showTip) {
+					// 右翻页
+					right(e);
+				}
 			}
-
 			break;
 		case SWT.ESC:
 			// 按Esc键退出
@@ -268,43 +309,91 @@ public class GLDisplay implements KeyListener {
 	}
 
 	/**
+	 * 放大
+	 * 
 	 * @param e
 	 */
-	private void zoomIn(KeyEvent e) {
-		if (count == Constants.BAR_SHOW_NUM_MIN) {
-			// 已经缩小到最小
-			return;
-		}
-		int num = count / 2 + 1;
-		if (num < Constants.BAR_SHOW_NUM_MIN) {
-			count = Constants.BAR_SHOW_NUM_MIN;
-		} else {
-			count = num;
-		}
-		int mid = (head + tail) / 2;
-		head = (head + mid) / 2;
-		tail = head + count;
-		// listener.zoomIn(new ZoomEvent(e.widget));
-	}
-
-	/**
-	 * @param e
-	 */
-	private void zoomOut(KeyEvent e) {
+	private synchronized void zoomIn(KeyEvent e) {
 		if (count >= bars.size()) {
 			// 已经放大到最大
 			return;
 		}
-		int num = count * 2;
-		if (num >= bars.size()) {
-			num = bars.size();
+		// lock.lock();
+		synchronized (lock) {
+			count = count * 2;
+			if (count > bars.size()) {
+				count = bars.size();
+			}
+			tail = bars.size() - 1;
+			head = tail - count + 3;
+			refresh();
 		}
-		int h = head - count / 2;
-		head = h < 0 ? 0 : h;
-		int t = tail + count / 2;
-		tail = t > num ? num : t;
-		count = num;
-		// listener.zoomOut(new ZoomEvent(e));
+		// int num = count * 2;
+		// if (num >= bars.size()) {
+		// num = bars.size();
+		// }
+		// int h = head - count / 2;
+		// head = h < 0 ? 0 : h;
+		// int t = tail + count / 2;
+		// tail = t > num ? num : t;
+		// count = num;
+		// lock.unlock();
+		// listener.zoomIn(new ZoomEvent(e.widget));
+	}
+
+	/**
+	 * 缩小
+	 * 
+	 * @param e
+	 */
+	private synchronized void zoomOut(KeyEvent e) {
+		if (count <= Constants.BAR_SHOW_NUM_MIN) {
+			// 已经缩小到最小
+			return;
+		}
+		synchronized (lock) {
+			count = count / 2 + 1;
+			if (count < Constants.BAR_SHOW_NUM_MIN) {
+				count = Constants.BAR_SHOW_NUM_MIN;
+			}
+			tail = bars.size() - 1;
+			head = tail - count + 3;
+			refresh();
+		}
+	}
+
+	/**
+	 * 左翻页
+	 * 
+	 * @param e
+	 */
+	public void left(KeyEvent e) {
+		synchronized (lock) {
+			tail = tail - (count - 2);
+			head = head - (count - 2);
+			if (head < 0) {
+				head = 0;
+				tail = count - 3;
+			}
+			refresh();
+		}
+	}
+
+	/**
+	 * 右翻页
+	 * 
+	 * @param e
+	 */
+	public void right(KeyEvent e) {
+		synchronized (lock) {
+			tail = tail + (count - 2);
+			head = head + (count - 2);
+			if (tail > bars.size() - 1) {
+				tail = bars.size() - 1;
+				head = tail - count + 3;
+			}
+			refresh();
+		}
 	}
 
 	/**
@@ -319,6 +408,7 @@ public class GLDisplay implements KeyListener {
 	 * stop
 	 */
 	public void stop() {
+		log.info("***************************end*************************");
 		animator.stop();
 		canvas.dispose();
 		shell.dispose();
@@ -340,13 +430,13 @@ public class GLDisplay implements KeyListener {
 		// last.setEndTime(bar.getEndTime());
 		//
 		// }
-		lock.lock();
+		// lock.lock();
 		bars.add(bar);
 		glbars.add(new GLBar(this, bar));
 		glcjls.add(new GLCJL(this, bar.getDealVol(), bar.getVol()));
 		head++;
 		tail++;
-		lock.unlock();
+		// lock.unlock();
 		refresh();
 	}
 
@@ -361,9 +451,6 @@ public class GLDisplay implements KeyListener {
 		if (count > size) {
 			count = size;
 		}
-		MACD last = null;
-		int index = 0;
-		double sum = 0;
 		for (int n : MA_N) {
 			List<MA> list = new ArrayList<MA>(bars.size());
 			mas.put(n, list);
@@ -378,11 +465,15 @@ public class GLDisplay implements KeyListener {
 		colors.put(40, green);
 		float[] gray = { 0.5f, 0.5f, 0.5f };
 		colors.put(60, gray);
+
+		MACD last = null;
+		int index = 0;
+		double sum = 0;
 		for (Bar bar : bars) {
 			this.bars.add(bar);
 			glbars.add(new GLBar(this, bar));
 			sum += bar.getClose();
-			add(index, sum, bar.getClose());
+			addMA(index, sum, bar.getClose());
 
 			glcjls.add(new GLCJL(this, bar.getDealVol(), bar.getVol()));
 
@@ -397,11 +488,13 @@ public class GLDisplay implements KeyListener {
 	}
 
 	/**
+	 * 添加并计算MA指标
+	 * 
 	 * @param i
 	 * @param sum
-	 * @param close 
+	 * @param close
 	 */
-	private void add(int i, double sum, double close) {
+	private void addMA(int i, double sum, double close) {
 		for (int n : MA_N) {
 			List<MA> list = mas.get(n);
 			if (i == n - 1) {
@@ -428,6 +521,7 @@ public class GLDisplay implements KeyListener {
 
 		int hvol = Integer.MIN_VALUE;
 		int lvol = Integer.MAX_VALUE;
+		this.deal = 0;
 		// 刷新区域最大最小值
 		for (int i = head; i <= tail; i++) {
 			Bar bar = bars.get(i);
@@ -457,30 +551,34 @@ public class GLDisplay implements KeyListener {
 		}
 		this.mid = (high + low) / 2.0;
 		this.del = high - low;
-		this.span = barBound.getWidth() / (float) count;
-		// this.glvols = new float[2 * count - 4];
 		int mvol = (hvol + lvol) / 2;
 		int dvol = hvol - lvol;
-		// GL(-1,1)，则宽度应该2倍
-		float delw = 2.0f / (barBound.getWidth() - 1.0f);
-		float wid = span * delw * Constants.BAR_VALUE_SCALE;
+		// K线宽度
+		this.span = barBound.width / (float) count;
+		float wid = span * barBound.delw * Constants.BAR_VALUE_SCALE;
 		for (int i = head; i <= tail; i++) {
 			GLBar bar = glbars.get(i);
 			// K线区域从左下角(0,0)开始
-			float x = (i - head) * span + span / 2.0f + 1;
-			float xf = x * delw - 1.0f;
+			int x = (int) ((i - head) * span + span / 2.0f + 1);
+			float xf = barBound.toxf(x);
 			bar.refresh(xf, wid, mid, del);
 			// 刷新MA值
 			for (int n : MA_N) {
 				MA ma = mas.get(n).get(i);
+				if (ma == null) {
+					continue;
+				}
 				ma.refresh(xf, mid, del);
 			}
 
 			Bar k = bars.get(i);
 			GLCJL cjl = glcjls.get(i);
 			cjl.refresh(xf, wid, deal, mvol, dvol, k.getOpen() <= k.getClose());
-
-			macds.get(i).refresh(xf, mh);
+			MACD macd = macds.get(i);
+			if (macd == null) {
+				continue;
+			}
+			macd.refresh(xf, mh);
 		}
 	}
 
@@ -676,9 +774,36 @@ public class GLDisplay implements KeyListener {
 	}
 
 	/**
+	 * @return the showTip
+	 */
+	public boolean isShowTip() {
+		return showTip;
+	}
+
+	/**
+	 * @param showTip
+	 *            the showTip to set
+	 */
+	public void setShowTip(boolean showTip) {
+		this.showTip = showTip;
+	}
+
+	/**
+	 * 获取窗口位置
+	 * 
+	 * @return
+	 */
+	public Point getLocation() {
+		RECT rect = new RECT();
+		OS.GetWindowRect(canvas.handle, rect);
+		return new Point(rect.left, rect.top);
+		// return shell.getLocation();
+	}
+
+	/**
 	 * 辅助监听器
 	 */
-	private class MyListener implements GLEventListener, ZoomListener {
+	private class MyListener implements GLEventListener, KeyListener, ZoomListener {
 		/**
 		 * GL监听器
 		 */
@@ -687,6 +812,10 @@ public class GLDisplay implements KeyListener {
 		 * 放大缩小监听器
 		 */
 		private List<ZoomListener> zListeners = new ArrayList<ZoomListener>();
+		/**
+		 * 按键监听器
+		 */
+		private List<KeyListener> kListeners = new ArrayList<KeyListener>();
 
 		/**
 		 * @param listener
@@ -716,6 +845,21 @@ public class GLDisplay implements KeyListener {
 		 */
 		public ZoomListener removeZoomListener(final ZoomListener listener) {
 			return zListeners.remove(listener) ? listener : null;
+		}
+
+		/**
+		 * @param listener
+		 */
+		public void addKeyListener(KeyListener listener) {
+			kListeners.add(listener);
+		}
+
+		/**
+		 * @param listener
+		 * @return KeyListener
+		 */
+		public KeyListener removeKeyListener(KeyListener listener) {
+			return kListeners.remove(listener) ? listener : null;
 		}
 
 		@Override
@@ -757,6 +901,20 @@ public class GLDisplay implements KeyListener {
 		public void zoomOut(ZoomEvent e) {
 			for (int i = 0; i < zListeners.size(); i++) {
 				zListeners.get(i).zoomOut(e);
+			}
+		}
+
+		@Override
+		public void keyPressed(KeyEvent e) {
+			for (int i = 0; i < kListeners.size(); i++) {
+				kListeners.get(i).keyPressed(e);
+			}
+		}
+
+		@Override
+		public void keyReleased(KeyEvent e) {
+			for (int i = 0; i < kListeners.size(); i++) {
+				kListeners.get(i).keyReleased(e);
 			}
 		}
 
