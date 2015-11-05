@@ -59,7 +59,6 @@ public class Constants {
 	 * 提示框离十字线间隔
 	 */
 	public static final int TIP_BAR_VALUE_SPAN = 8;
-
 	/**
 	 * 十字线时间框宽度
 	 */

@@ -11,6 +11,7 @@ import org.apache.commons.logging.LogFactory;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.KeyListener;
+import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
 import org.eclipse.swt.events.MouseMoveListener;
 import org.eclipse.swt.events.ShellAdapter;
@@ -28,8 +29,6 @@ import com.finance.core.Constants;
 import com.finance.core.MD;
 import com.finance.core.indicator.MA;
 import com.finance.core.indicator.MACD;
-import com.finance.events.ZoomEvent;
-import com.finance.events.ZoomListener;
 import com.finance.ui.bean.GLBar;
 import com.finance.ui.bean.GLCJL;
 import com.finance.util.MathUtil;
@@ -46,7 +45,7 @@ import com.jogamp.opengl.util.FPSAnimator;
 /**
  * @author Chen Lin 2015-11-2
  */
-public class GLDisplay implements KeyListener {
+public class GLDisplay extends PlotBase implements KeyListener, MouseListener, MouseMoveListener {
 	private static final Log log = LogFactory.getLog(GLDisplay.class);
 	/**
 	 * 移动平均线指数
@@ -68,10 +67,6 @@ public class GLDisplay implements KeyListener {
 	 * 明细图区域
 	 */
 	private Bound detailBound = new Bound();
-	/**
-	 * 锁
-	 */
-	// private final ReentrantLock lock;
 	/**
 	 * 窗口
 	 */
@@ -117,6 +112,14 @@ public class GLDisplay implements KeyListener {
 	 * MACD指标
 	 */
 	private List<MACD> macds = new ArrayList<MACD>();
+	/**
+	 * 鼠标点的位置
+	 */
+	private Point point;
+	/**
+	 * 拖拽K线图
+	 */
+	private boolean move;
 	/**
 	 * 展示条数
 	 */
@@ -177,7 +180,11 @@ public class GLDisplay implements KeyListener {
 	private void addListener() {
 		canvas.addGLEventListener(listener);
 		canvas.addKeyListener(listener);
+		canvas.addMouseListener(listener);
+		canvas.addMouseMoveListener(listener);
 		listener.addKeyListener(this);
+		listener.addMouseListener(this);
+		listener.addMouseMoveListener(this);
 		shell.addShellListener(new ShellAdapter() {
 			@Override
 			public void shellClosed(ShellEvent e) {
@@ -205,21 +212,6 @@ public class GLDisplay implements KeyListener {
 	/**
 	 * @param listener
 	 */
-	public void addZoomListener(final ZoomListener listener) {
-		this.listener.addZoomListener(listener);
-	}
-
-	/**
-	 * @param listener
-	 * @return ZoomListener
-	 */
-	public ZoomListener removeZoomListener(final ZoomListener listener) {
-		return this.listener.removeZoomListener(listener);
-	}
-
-	/**
-	 * @param listener
-	 */
 	public void addKeyListener(KeyListener listener) {
 		this.listener.addKeyListener(listener);
 	}
@@ -236,14 +228,30 @@ public class GLDisplay implements KeyListener {
 	 * @param listener
 	 */
 	public void addMouseListener(MouseListener listener) {
-		canvas.addMouseListener(listener);
+		this.listener.addMouseListener(listener);
+	}
+
+	/**
+	 * @param listener
+	 * @return MouseListener
+	 */
+	public MouseListener removeMouseListener(MouseListener listener) {
+		return this.listener.removeMouseListener(listener);
 	}
 
 	/**
 	 * @param listener
 	 */
 	public void addMouseMoveListener(MouseMoveListener listener) {
-		canvas.addMouseMoveListener(listener);
+		this.listener.addMouseMoveListener(listener);
+	}
+
+	/**
+	 * @param listener
+	 * @return MouseMoveListener
+	 */
+	public MouseMoveListener removeMouseMoveListener(MouseMoveListener listener) {
+		return this.listener.removeMouseMoveListener(listener);
 	}
 
 	@Override
@@ -290,6 +298,14 @@ public class GLDisplay implements KeyListener {
 				}
 			}
 			break;
+		case SWT.PAGE_UP:
+			// 左翻页
+			left(e);
+			break;
+		case SWT.PAGE_DOWN:
+			// 右翻页
+			right(e);
+			break;
 		case SWT.ESC:
 			// 按Esc键退出
 			stop();
@@ -301,6 +317,44 @@ public class GLDisplay implements KeyListener {
 
 	@Override
 	public void keyReleased(KeyEvent e) {
+	}
+
+	@Override
+	public void mouseDoubleClick(MouseEvent e) {
+		showTip = !showTip;
+	}
+
+	@Override
+	public void mouseDown(MouseEvent e) {
+		if (bars.isEmpty()) {
+			return;
+		}
+		// 此时还未转变为左下角原点
+		if (e.x < barBound.x || e.x > detailBound.x || e.y < Constants.UP_SPAN || height - e.y <= Constants.DOWN_SPAN) {
+			return;
+		}
+		if (!showTip && e.count == 1) {
+			canvas.setCursor(canvas.getDisplay().getSystemCursor(SWT.CURSOR_SIZEE));
+			move = true;
+		}
+		point = new Point(e.x, height - e.y);
+	}
+
+	@Override
+	public void mouseUp(MouseEvent e) {
+		move = false;
+		canvas.setCursor(canvas.getDisplay().getSystemCursor(SWT.CURSOR_ARROW));
+	}
+
+	@Override
+	public void mouseMove(MouseEvent e) {
+		if (bars.isEmpty()) {
+			return;
+		}
+		// 此时还未转变为左下角原点
+		if (e.x < barBound.x || e.x > detailBound.x || e.y < Constants.UP_SPAN || height - e.y <= Constants.DOWN_SPAN) {
+			return;
+		}
 	}
 
 	/**
@@ -315,11 +369,20 @@ public class GLDisplay implements KeyListener {
 		}
 		synchronized (lock) {
 			count = count * 2;
-			if (count > bars.size()) {
-				count = bars.size();
+			int size = bars.size();
+			if (count > size) {
+				count = size;
 			}
-			tail = bars.size() - 1;
+			// 以屏幕中心放大一倍
+			tail += count / 4;
+			if (tail > size - 1) {
+				tail = size - 1;
+			}
 			head = tail - count + 3;
+			if (head < 0) {
+				head = 0;
+				tail = count - 3;
+			}
 			refresh();
 		}
 	}
@@ -339,7 +402,7 @@ public class GLDisplay implements KeyListener {
 			if (count < Constants.BAR_SHOW_NUM_MIN) {
 				count = Constants.BAR_SHOW_NUM_MIN;
 			}
-			tail = bars.size() - 1;
+			tail -= count / 2;
 			head = tail - count + 3;
 			refresh();
 		}
@@ -771,21 +834,6 @@ public class GLDisplay implements KeyListener {
 	}
 
 	/**
-	 * @return the showTip
-	 */
-	public boolean isShowTip() {
-		return showTip;
-	}
-
-	/**
-	 * @param showTip
-	 *            the showTip to set
-	 */
-	public void setShowTip(boolean showTip) {
-		this.showTip = showTip;
-	}
-
-	/**
 	 * 获取窗口位置
 	 * 
 	 * @return Point
@@ -799,19 +847,23 @@ public class GLDisplay implements KeyListener {
 	/**
 	 * 辅助监听器
 	 */
-	private class MyListener implements GLEventListener, KeyListener, ZoomListener {
+	private class MyListener implements GLEventListener, KeyListener, MouseListener, MouseMoveListener {
 		/**
 		 * GL监听器
 		 */
 		private List<GLEventListener> glListeners = new ArrayList<GLEventListener>();
 		/**
-		 * 放大缩小监听器
-		 */
-		private List<ZoomListener> zListeners = new ArrayList<ZoomListener>();
-		/**
 		 * 按键监听器
 		 */
 		private List<KeyListener> kListeners = new ArrayList<KeyListener>();
+		/**
+		 * 鼠标监听器
+		 */
+		private List<MouseListener> mListeners = new ArrayList<MouseListener>();
+		/**
+		 * 鼠标移动监听器
+		 */
+		private List<MouseMoveListener> moveListeners = new ArrayList<MouseMoveListener>();
 
 		/**
 		 * @param listener
@@ -831,21 +883,6 @@ public class GLDisplay implements KeyListener {
 		/**
 		 * @param listener
 		 */
-		public void addZoomListener(final ZoomListener listener) {
-			zListeners.add(listener);
-		}
-
-		/**
-		 * @param listener
-		 * @return ZoomListener
-		 */
-		public ZoomListener removeZoomListener(final ZoomListener listener) {
-			return zListeners.remove(listener) ? listener : null;
-		}
-
-		/**
-		 * @param listener
-		 */
 		public void addKeyListener(KeyListener listener) {
 			kListeners.add(listener);
 		}
@@ -856,6 +893,36 @@ public class GLDisplay implements KeyListener {
 		 */
 		public KeyListener removeKeyListener(KeyListener listener) {
 			return kListeners.remove(listener) ? listener : null;
+		}
+
+		/**
+		 * @param listener
+		 */
+		public void addMouseListener(MouseListener listener) {
+			mListeners.add(listener);
+		}
+
+		/**
+		 * @param listener
+		 * @return MouseListener
+		 */
+		public MouseListener removeMouseListener(MouseListener listener) {
+			return mListeners.remove(listener) ? listener : null;
+		}
+
+		/**
+		 * @param listener
+		 */
+		public void addMouseMoveListener(MouseMoveListener listener) {
+			moveListeners.add(listener);
+		}
+
+		/**
+		 * @param listener
+		 * @return MouseMoveListener
+		 */
+		public MouseMoveListener removeMouseMoveListener(MouseMoveListener listener) {
+			return moveListeners.remove(listener) ? listener : null;
 		}
 
 		@Override
@@ -887,20 +954,6 @@ public class GLDisplay implements KeyListener {
 		}
 
 		@Override
-		public void zoomIn(ZoomEvent e) {
-			for (int i = 0; i < zListeners.size(); i++) {
-				zListeners.get(i).zoomIn(e);
-			}
-		}
-
-		@Override
-		public void zoomOut(ZoomEvent e) {
-			for (int i = 0; i < zListeners.size(); i++) {
-				zListeners.get(i).zoomOut(e);
-			}
-		}
-
-		@Override
 		public void keyPressed(KeyEvent e) {
 			for (int i = 0; i < kListeners.size(); i++) {
 				kListeners.get(i).keyPressed(e);
@@ -914,5 +967,33 @@ public class GLDisplay implements KeyListener {
 			}
 		}
 
+		@Override
+		public void mouseDoubleClick(MouseEvent e) {
+			for (int i = 0; i < mListeners.size(); i++) {
+				mListeners.get(i).mouseDoubleClick(e);
+			}
+		}
+
+		@Override
+		public void mouseDown(MouseEvent e) {
+			for (int i = 0; i < mListeners.size(); i++) {
+				mListeners.get(i).mouseDown(e);
+			}
+		}
+
+		@Override
+		public void mouseUp(MouseEvent e) {
+			for (int i = 0; i < mListeners.size(); i++) {
+				mListeners.get(i).mouseUp(e);
+			}
+		}
+
+		@Override
+		public void mouseMove(MouseEvent e) {
+			for (int i = 0; i < moveListeners.size(); i++) {
+				moveListeners.get(i).mouseMove(e);
+			}
+		}
 	}
+
 }

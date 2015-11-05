@@ -225,7 +225,6 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 	@Override
 	public void mouseDoubleClick(MouseEvent e) {
 		draw = !draw;
-		display.setShowTip(draw);
 		if (draw && !bars.isEmpty()) {
 			// 转化为左下角起始坐标(0,0)
 			int len = bars.size() - 1;
@@ -250,7 +249,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 			return;
 		}
 		// 此时还未转变为左下角原点
-		if (e.x < barBound.x || e.x > detailBound.x || e.y < Constants.UP_SPAN) {
+		if (e.x < barBound.x || e.x > detailBound.x || e.y < Constants.UP_SPAN|| height -e.y <= Constants.DOWN_SPAN) {
 			return;
 		}
 		int len = bars.size() - 1;
