@@ -41,8 +41,8 @@ public class Test {
 		gl.addGLEventListener(new GLMACDPlot(gl));
 		GLToolTip tip = new GLToolTip(gl);
 		long start = System.currentTimeMillis();
-//		List<Bar> bars = BarReadTest.parse(new File("IF0002.txt"), 60 * 1000);
-		List<Bar> bars = BufferUtil.read(new File("IF0002.dat"));
+		List<Bar> bars = BarReadTest.parse(new File("IF0002.txt"), 60 * 1000);
+//		List<Bar> bars = BufferUtil.read(new File("IF0002.dat"));
 		long end = System.currentTimeMillis();
 		System.out.println(end - start);
 		gl.addAll(bars);
