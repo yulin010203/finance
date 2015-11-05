@@ -239,7 +239,7 @@ public class BufferUtil {
 		md.setDealVol(buffer.getInt(55)); // 成交量
 		md.setVol(buffer.getInt(59)); // 持仓量
 		md.setBidPrice(buffer.getDouble(63)); // 买1价
-		md.setBidPrice(buffer.getInt(71)); // 买1量
+		md.setBidVol(buffer.getInt(71)); // 买1量
 		md.setAskPrice(buffer.getDouble(75)); // 卖1价
 		md.setAskVol(buffer.getInt(83)); // 卖1量
 		md.setTurnover(buffer.getDouble(87)); // 成交金额
