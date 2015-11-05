@@ -10,6 +10,10 @@ import com.finance.util.TimeUtil;
 public class MD {
 
 	/**
+	 * 合约
+	 */
+	private String code;
+	/**
 	 * 最新价
 	 */
 	private double price;
@@ -29,7 +33,7 @@ public class MD {
 	 * 最低价
 	 */
 	private double low;
-	/** 
+	/**
 	 * 成交均价
 	 */
 	private double avgPrice;
@@ -41,6 +45,27 @@ public class MD {
 	 * 持仓量
 	 */
 	private int vol;
+
+	/**
+	 * 买1价
+	 */
+	private double bidPrice;
+	/**
+	 * 买1量
+	 */
+	private int bidVol;
+	/**
+	 * 卖1价
+	 */
+	private double askPrice;
+	/**
+	 * 卖1量
+	 */
+	private int askVol;
+	/**
+	 * 成交金额
+	 */
+	private double turnover;
 	/**
 	 * 涨跌价格(price-open)
 	 */
@@ -57,6 +82,25 @@ public class MD {
 	 * 时间格式
 	 */
 	private String format;
+
+	/**
+	 * 获取 xxx
+	 *
+	 * @return xxx
+	 */
+	public String getCode() {
+		return code;
+	}
+
+	/**
+	 * 设置 xxx
+	 * 
+	 * @param code
+	 *            xxx
+	 */
+	public void setCode(String code) {
+		this.code = code;
+	}
 
 	/**
 	 * 获取xxx
@@ -211,6 +255,101 @@ public class MD {
 	}
 
 	/**
+	 * 获取 xxx
+	 *
+	 * @return xxx
+	 */
+	public double getBidPrice() {
+		return bidPrice;
+	}
+
+	/**
+	 * 设置 xxx
+	 * 
+	 * @param bidPrice
+	 *            xxx
+	 */
+	public void setBidPrice(double bidPrice) {
+		this.bidPrice = bidPrice;
+	}
+
+	/**
+	 * 获取 xxx
+	 *
+	 * @return xxx
+	 */
+	public int getBidVol() {
+		return bidVol;
+	}
+
+	/**
+	 * 设置 xxx
+	 * 
+	 * @param bidVol
+	 *            xxx
+	 */
+	public void setBidVol(int bidVol) {
+		this.bidVol = bidVol;
+	}
+
+	/**
+	 * 获取 xxx
+	 *
+	 * @return xxx
+	 */
+	public double getAskPrice() {
+		return askPrice;
+	}
+
+	/**
+	 * 设置 xxx
+	 * 
+	 * @param askPrice
+	 *            xxx
+	 */
+	public void setAskPrice(double askPrice) {
+		this.askPrice = askPrice;
+	}
+
+	/**
+	 * 获取 xxx
+	 *
+	 * @return xxx
+	 */
+	public int getAskVol() {
+		return askVol;
+	}
+
+	/**
+	 * 设置 xxx
+	 * 
+	 * @param askVol
+	 *            xxx
+	 */
+	public void setAskVol(int askVol) {
+		this.askVol = askVol;
+	}
+
+	/**
+	 * 获取 xxx
+	 *
+	 * @return xxx
+	 */
+	public double getTurnover() {
+		return turnover;
+	}
+
+	/**
+	 * 设置 xxx
+	 * 
+	 * @param turnover
+	 *            xxx
+	 */
+	public void setTurnover(double turnover) {
+		this.turnover = turnover;
+	}
+
+	/**
 	 * 获取xxx
 	 * 
 	 * @return xxx
@@ -249,9 +388,28 @@ public class MD {
 	}
 
 	/**
+	 * 获取 xxx
+	 *
+	 * @return xxx
+	 */
+	public long getTimeStamp() {
+		return timeStamp;
+	}
+
+	/**
+	 * 设置 xxx
+	 * 
+	 * @param timeStamp
+	 *            xxx
+	 */
+	public void setTimeStamp(long timeStamp) {
+		this.timeStamp = timeStamp;
+	}
+
+	/**
 	 * 获取当前时间字符串(yyyy/MM/dd HH:mm)
 	 * 
-	 * @return
+	 * @return date
 	 */
 	public String date2Str() {
 		if (format == null) {

@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.finance.core.Bar;
+import com.finance.core.MD;
 
 /**
  * @author YuLin Nov 4, 2015
@@ -26,7 +27,11 @@ public class BufferUtil {
 	/**
 	 * K线数据二进制字节数
 	 */
-	public static final int BAR_BUFFER_NUM = 61;
+	public static final int BAR_BUFFER_NUM = 63;
+	/**
+	 * tick数据二进制字节数
+	 */
+	public static final int MD_BUFFER_NUM = 95;
 
 	/**
 	 * 字符串转为char*("\0"结束)
@@ -73,9 +78,9 @@ public class BufferUtil {
 			return "";
 		}
 		int max = len;
-		for (int i = index; i < len; i++) {
-			if (bytes[index + i] == 0) {
-				max = index + i;
+		for (int i = 0; i < len; i++) {
+			if (bytes[i + index] == 0) {
+				max = i;
 				break;
 			}
 		}
@@ -96,15 +101,15 @@ public class BufferUtil {
 		ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.nativeOrder());
 		Bar bar = new Bar();
 		bar.setStartTime(buffer.getLong(0)); // 开始时间
-		bar.setCode(c2str(data, 8, 13)); // 合约代码
-		bar.setPeriod(buffer.getLong(13)); // K线周期
+		bar.setCode(c2str(data, 8, 7)); // 合约代码
+		bar.setPeriod(buffer.getLong(15)); // K线周期
 		bar.setEndTime(bar.getStartTime() + bar.getPeriod()); // 结束时间
-		bar.setOpen(buffer.getDouble(21)); // 开盘
-		bar.setClose(buffer.getDouble(29)); // 收盘
-		bar.setHigh(buffer.getDouble(37)); // 最高
-		bar.setLow(buffer.getDouble(45)); // 最低
-		bar.setDealVol(buffer.getInt(53)); // 成交量
-		bar.setVol(buffer.getInt(57)); // 持仓量
+		bar.setOpen(buffer.getDouble(23)); // 开盘
+		bar.setClose(buffer.getDouble(31)); // 收盘
+		bar.setHigh(buffer.getDouble(39)); // 最高
+		bar.setLow(buffer.getDouble(47)); // 最低
+		bar.setDealVol(buffer.getInt(55)); // 成交量
+		bar.setVol(buffer.getInt(59)); // 持仓量
 		bar.setPriceChange(bar.getOpen() - bar.getClose());
 		if (bar.getOpen() != 0) {
 			bar.setPriceChangeRate(bar.getPriceChange() / bar.getOpen() * 100d);
@@ -123,15 +128,34 @@ public class BufferUtil {
 		ByteBuffer buffer = ByteBuffer.allocate(BAR_BUFFER_NUM).order(ByteOrder.nativeOrder());
 		buffer.putLong(0, bar.getStartTime()); // 开始时间
 		buffer.position(8);
-		buffer.put(str2c(bar.getCode()), 0, 5); // 合约代码
-		buffer.putLong(13, bar.getPeriod()); // K线周期
-		buffer.putDouble(21, bar.getOpen()); // 开盘
-		buffer.putDouble(29, bar.getClose()); // 收盘
-		buffer.putDouble(37, bar.getHigh()); // 最高
-		buffer.putDouble(45, bar.getLow()); // 最低
-		buffer.putInt(53, bar.getDealVol()); // 成交量
-		buffer.putInt(57, bar.getVol()); // 持仓量
+		buffer.put(str2c(bar.getCode()), 0, 7); // 合约代码
+		buffer.putLong(15, bar.getPeriod()); // K线周期
+		buffer.putDouble(23, bar.getOpen()); // 开盘
+		buffer.putDouble(31, bar.getClose()); // 收盘
+		buffer.putDouble(39, bar.getHigh()); // 最高
+		buffer.putDouble(47, bar.getLow()); // 最低
+		buffer.putInt(55, bar.getDealVol()); // 成交量
+		buffer.putInt(59, bar.getVol()); // 持仓量
 		return buffer.array();
+	}
+
+	/**
+	 * K线转成字符流
+	 * 
+	 * @param bar
+	 * @return string
+	 */
+	public static String bar2Str(Bar bar) {
+		StringBuffer sb = new StringBuffer();
+		sb.append("Bar[code=").append(bar.getCode()).append(",");
+		sb.append("time=").append(bar.date2Str()).append(",");
+		sb.append("open=").append(bar.getOpen()).append(",");
+		sb.append("close=").append(bar.getClose()).append(",");
+		sb.append("high=").append(bar.getHigh()).append(",");
+		sb.append("low=").append(bar.getLow()).append(",");
+		sb.append("dealVol=").append(bar.getDealVol()).append(",");
+		sb.append("vol=").append(bar.getVol()).append("]");
+		return sb.toString();
 	}
 
 	/**
@@ -190,5 +214,93 @@ public class BufferUtil {
 				}
 			}
 		}
+	}
+
+	/**
+	 * 二进制数据转成MD
+	 * 
+	 * @param data
+	 * @return MD
+	 */
+	public static MD bytes2MD(byte[] data) {
+		// 时间|合约|最新|开盘|收盘|最高|最低|成交量|持仓量|买1价|买1量|卖1价|卖1量|成交金额
+		if (data == null || data.length < MD_BUFFER_NUM) {
+			return null;
+		}
+		ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.nativeOrder());
+		MD md = new MD();
+		md.setTimeStamp(buffer.getLong(0)); // 开始时间
+		md.setCode(c2str(data, 8, 7)); // 合约代码
+		md.setPrice(buffer.getDouble(15)); // 最新
+		md.setOpen(buffer.getDouble(23)); // 开盘
+		md.setClose(buffer.getDouble(31)); // 收盘
+		md.setHigh(buffer.getDouble(39)); // 最高
+		md.setLow(buffer.getDouble(47)); // 最低
+		md.setDealVol(buffer.getInt(55)); // 成交量
+		md.setVol(buffer.getInt(59)); // 持仓量
+		md.setBidPrice(buffer.getDouble(63)); // 买1价
+		md.setBidPrice(buffer.getInt(71)); // 买1量
+		md.setAskPrice(buffer.getDouble(75)); // 卖1价
+		md.setAskVol(buffer.getInt(83)); // 卖1量
+		md.setTurnover(buffer.getDouble(87)); // 成交金额
+		md.setPriceChange(md.getOpen() - md.getPrice());
+		if (md.getOpen() != 0) {
+			md.setPriceChangeRate(md.getPriceChange() / md.getOpen() * 100d);
+		}
+		if (md.getDealVol() != 0) {
+			md.setAvgPrice(md.getTurnover() / md.getDealVol());
+		}
+		return md;
+	}
+
+	/**
+	 * MD转成二进制数据
+	 * 
+	 * @param md
+	 * @return bytes
+	 */
+	public static byte[] md2Bytes(MD md) {
+		ByteBuffer buffer = ByteBuffer.allocate(MD_BUFFER_NUM).order(ByteOrder.nativeOrder());
+		buffer.putLong(0, md.getTimeStamp()); // 开始时间
+		buffer.position(8);
+		buffer.put(str2c(md.getCode()), 0, 7); // 合约代码
+		buffer.putDouble(15, md.getPrice()); // 最新
+		buffer.putDouble(23, md.getOpen()); // 开盘
+		buffer.putDouble(31, md.getClose()); // 收盘
+		buffer.putDouble(39, md.getHigh()); // 最高
+		buffer.putDouble(47, md.getLow()); // 最低
+		buffer.putInt(55, md.getDealVol()); // 成交量
+		buffer.putInt(59, md.getVol()); // 持仓量
+		buffer.putDouble(63, md.getBidPrice()); // 买1价
+		buffer.putInt(71, md.getBidVol()); // 买1量
+		buffer.putDouble(75, md.getAskPrice()); // 卖1价
+		buffer.putInt(83, md.getAskVol()); // 卖1量
+		buffer.putDouble(87, md.getTurnover()); // 成交金额
+		return buffer.array();
+	}
+
+	/** 
+	 * MD转成字符流
+	 * 
+	 * @param md
+	 * @return string
+	 */
+	public static String md2Str(MD md) {
+		StringBuffer sb = new StringBuffer();
+		sb.append("MD[code=").append(md.getCode()).append(",");
+		sb.append("time=").append(md.date2Str()).append(",");
+		sb.append("price=").append(md.getPrice()).append(",");
+		sb.append("open=").append(md.getOpen()).append(",");
+		sb.append("close=").append(md.getClose()).append(",");
+		sb.append("high=").append(md.getHigh()).append(",");
+		sb.append("low=").append(md.getLow()).append(",");
+		sb.append("dealVol=").append(md.getDealVol()).append(",");
+		sb.append("vol=").append(md.getVol()).append(",");
+		sb.append("bidPrice=").append(md.getBidPrice()).append(",");
+		sb.append("bidVol=").append(md.getBidVol()).append(",");
+		sb.append("askPrice=").append(md.getAskPrice()).append(",");
+		sb.append("askVol=").append(md.getAskVol()).append(",");
+		sb.append("turnover=").append(md.getTurnover()).append("]");
+		return sb.toString();
 	}
 }

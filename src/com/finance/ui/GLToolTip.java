@@ -339,7 +339,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 			}
 			y1 -= 4 * Constants.SHOW_VALUE_SPAN;
 			gl.glRasterPos2f(toxf(x1 + Constants.SHOW_VALUE_SPAN), toyf(y1));
-			glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, "开盘 = " + bar.getOpen());
+			glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, "open = " + bar.getOpen());
 			y1 -= 4 * Constants.SHOW_VALUE_SPAN;
 			gl.glColor3f(0.7f, 0, 0);
 			gl.glRasterPos2f(toxf(x1 + Constants.SHOW_VALUE_SPAN), toyf(y1));
