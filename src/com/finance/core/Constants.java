@@ -48,6 +48,10 @@ public class Constants {
 	 */
 	public static final float BAR_VALUE_SCALE = 0.7f;
 	/**
+	 * K线左右移动速度
+	 */
+	public static final int BAR_MOVE_SPEED = 1;
+	/**
 	 * K线提示框宽度
 	 */
 	public static final int TIP_BAR_VALUE_WIDTH = 96;

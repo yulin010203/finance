@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<appenders>
+		<RollingFile name="fileAppender" fileName="logs/server.log"
+			filePattern="logs/server.log.%d{yyyy-MM-dd}">
+			<!-- <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} %p %c - %m %n" 
+				/> -->
+			<PatternLayout pattern="%p %c - %m %n" />
+			<!-- interval="2" modulate="true" -->
+			<TimeBasedTriggeringPolicy />
+		</RollingFile>
+		<Console name="consolePrint" target="SYSTEM_OUT">
+			<PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} %p %c - %m %n" />
+		</Console>
+	</appenders>
+	<loggers>
+		<root level="DEBUG">
+			<appender-ref ref="consolePrint" />
+			<appender-ref ref="fileAppender" />
+		</root>
+	</loggers>
+</configuration>

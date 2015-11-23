@@ -74,7 +74,7 @@ public class BarReadTest {
 			if (bar.getOpen() != 0) {
 				bar.setPriceChangeRate(bar.getPriceChange() / bar.getOpen() * 100d);
 			}
-			bar.setFinished(true);
+			bar.setStatus(2);
 			return bar;
 		} catch (Throwable e) {
 			System.out.println(e);

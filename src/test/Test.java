@@ -34,18 +34,32 @@ public class Test {
 		// }
 
 		Display display = Display.getDefault();
-		GLDisplay gl = new GLDisplay(display);
+		final GLDisplay gl = new GLDisplay(display);
 		gl.addGLEventListener(new GLBackground(gl));
 		gl.addGLEventListener(new GLBarPlot(gl));
 		gl.addGLEventListener(new GLCJLPlot(gl));
 		gl.addGLEventListener(new GLMACDPlot(gl));
 		GLToolTip tip = new GLToolTip(gl);
 		long start = System.currentTimeMillis();
-		List<Bar> bars = BarReadTest.parse(new File("IF0002.txt"), 60 * 1000);
-//		List<Bar> bars = BufferUtil.read(new File("IF0002.dat"));
+		final List<Bar> bars = BarReadTest.parse(new File("IF0002.txt"), 60 * 1000);
+		// List<Bar> bars = BufferUtil.read(new File("IF0002.dat"));
 		long end = System.currentTimeMillis();
 		System.out.println(end - start);
-		gl.addAll(bars);
+		 gl.addAll(bars);
+//		new Thread(new Runnable() {
+//			@Override
+//			public void run() {
+//				try {
+//					for (int i = 0; i < bars.size(); i++) {
+//						Bar bar = bars.get(i);
+//						gl.add(bar);
+//						Thread.sleep(500);
+//					}
+//				} catch (InterruptedException e) {
+//					System.out.println(e);
+//				}
+//			}
+//		}).start();
 		gl.addGLEventListener(tip);
 		gl.addKeyListener(tip);
 		gl.addMouseListener(tip);

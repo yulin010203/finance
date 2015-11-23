@@ -131,20 +131,35 @@ public class GLBackground extends PlotBase implements GLEventListener {
 		int dcount = display.getCount() / 6;
 		List<Bar> bars = display.getBars();
 		int index = display.getHead() + dcount;
+		if (index > bars.size() - 1) {
+			return;
+		}
 		gl.glColor3f(0.5f, 0.5f, 0.5f);
 		gl.glRasterPos2f(x1, y);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, bars.get(index).time2Str());
+		index += dcount;
+		if (index > bars.size() - 1) {
+			return;
+		}
 		gl.glRasterPos2f(x2, y);
-		index += dcount;
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, bars.get(index).time2Str());
+		index += dcount;
+		if (index > bars.size() - 1) {
+			return;
+		}
 		gl.glRasterPos2f(x3, y);
-		index += dcount;
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, bars.get(index).time2Str());
+		index += dcount;
+		if (index > bars.size() - 1) {
+			return;
+		}
 		gl.glRasterPos2f(x4, y);
-		index += dcount;
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, bars.get(index).time2Str());
-		gl.glRasterPos2f(x5, y);
 		index += dcount;
+		if (index > bars.size() - 1) {
+			return;
+		}
+		gl.glRasterPos2f(x5, y);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, bars.get(index).time2Str());
 	}
 

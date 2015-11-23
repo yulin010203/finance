@@ -14,6 +14,7 @@ import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
 import org.eclipse.swt.events.MouseMoveListener;
+import org.eclipse.swt.events.MouseWheelListener;
 import org.eclipse.swt.events.ShellAdapter;
 import org.eclipse.swt.events.ShellEvent;
 import org.eclipse.swt.graphics.Point;
@@ -24,11 +25,13 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
 import com.finance.core.Bar;
+import com.finance.core.BarComputer;
 import com.finance.core.Bound;
 import com.finance.core.Constants;
 import com.finance.core.MD;
 import com.finance.core.indicator.MA;
 import com.finance.core.indicator.MACD;
+import com.finance.listener.BarListener;
 import com.finance.ui.bean.GLBar;
 import com.finance.ui.bean.GLCJL;
 import com.finance.util.MathUtil;
@@ -45,7 +48,7 @@ import com.jogamp.opengl.util.FPSAnimator;
 /**
  * @author Chen Lin 2015-11-2
  */
-public class GLDisplay extends PlotBase implements KeyListener, MouseListener, MouseMoveListener {
+public class GLDisplay extends PlotBase implements BarListener, KeyListener, MouseListener, MouseMoveListener, MouseWheelListener {
 	private static final Log log = LogFactory.getLog(GLDisplay.class);
 	/**
 	 * 移动平均线指数
@@ -137,6 +140,14 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 	 */
 	private int tail;
 	/**
+	 * 图区内最高价
+	 */
+	private double high;
+	/**
+	 * 图区内最低价
+	 */
+	private double low;
+	/**
 	 * 图区内中间价位
 	 */
 	private double mid;
@@ -153,9 +164,17 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 	 */
 	private double macdMax;
 	/**
+	 * K线结算价求和
+	 */
+	private double sum;
+	/**
 	 * K线宽度(像素)
 	 */
 	private float span;
+	/**
+	 * K线计算器
+	 */
+	private BarComputer computer;
 	/**
 	 * 画面更新锁
 	 */
@@ -170,6 +189,7 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 		GLProfile profile = GLProfile.get(GLProfile.GL2);
 		GLCapabilities capabilities = new GLCapabilities(profile);
 		this.canvas = GLCanvas.create(shell, SWT.NONE, capabilities, null);
+		this.computer = new BarComputer();
 		addListener();
 		this.animator = new FPSAnimator(canvas, Constants.SHOW_RATE);
 	}
@@ -182,9 +202,11 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 		canvas.addKeyListener(listener);
 		canvas.addMouseListener(listener);
 		canvas.addMouseMoveListener(listener);
+		canvas.addMouseWheelListener(listener);
 		listener.addKeyListener(this);
 		listener.addMouseListener(this);
 		listener.addMouseMoveListener(this);
+		listener.addMouseWheelListener(this);
 		shell.addShellListener(new ShellAdapter() {
 			@Override
 			public void shellClosed(ShellEvent e) {
@@ -254,6 +276,21 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 		return this.listener.removeMouseMoveListener(listener);
 	}
 
+	/**
+	 * @param listener
+	 */
+	public void addMouseWheelListener(MouseWheelListener listener) {
+		this.listener.addMouseWheelListener(listener);
+	}
+
+	/**
+	 * @param listener
+	 * @return MouseWheelListener
+	 */
+	public MouseWheelListener removeMouseWheelListener(MouseWheelListener listener) {
+		return this.listener.removeMouseWheelListener(listener);
+	}
+
 	@Override
 	public void keyPressed(KeyEvent e) {
 		switch (e.keyCode) {
@@ -263,7 +300,7 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 
 			} else {
 				// 放大
-				zoomOut(e);
+				zoomOut();
 			}
 			break;
 		case SWT.ARROW_DOWN:
@@ -272,7 +309,7 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 
 			} else {
 				// 缩小
-				zoomIn(e);
+				zoomIn();
 			}
 
 			break;
@@ -355,6 +392,30 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 		if (e.x < barBound.x || e.x > detailBound.x || e.y < Constants.UP_SPAN || height - e.y <= Constants.DOWN_SPAN) {
 			return;
 		}
+		if (move) {
+			int mx = e.x - point.x;
+			if (mx > 0) {
+				int num = (int) (mx / span);
+				left(Constants.BAR_MOVE_SPEED * (num * num + 1));
+			}
+			if (mx < 0) {
+				int num = (int) (-mx / span);
+				right(Constants.BAR_MOVE_SPEED * (num * num + 1));
+			}
+		}
+		point = new Point(e.x, height - e.y);
+	}
+
+	@Override
+	public void mouseScrolled(MouseEvent e) {
+		// if (e.button == SWT.MouseWheel && e.stateMask != SWT.CTRL) {
+		if (e.stateMask != SWT.CTRL) {
+			if (e.count < 0) {
+				zoomIn();
+			} else {
+				zoomOut();
+			}
+		}
 	}
 
 	/**
@@ -362,7 +423,7 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 	 * 
 	 * @param e
 	 */
-	private synchronized void zoomIn(KeyEvent e) {
+	private synchronized void zoomIn() {
 		if (count >= bars.size()) {
 			// 已经放大到最大
 			return;
@@ -392,7 +453,7 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 	 * 
 	 * @param e
 	 */
-	private synchronized void zoomOut(KeyEvent e) {
+	private synchronized void zoomOut() {
 		if (count <= Constants.BAR_SHOW_NUM_MIN) {
 			// 已经缩小到最小
 			return;
@@ -414,12 +475,21 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 	 * @param e
 	 */
 	public void left(KeyEvent e) {
-		if (head <= 0) {
+		left(count - 2);
+	}
+
+	/**
+	 * 左移num条K线
+	 * 
+	 * @param num
+	 */
+	private void left(int num) {
+		if (head <= 0 || num < 1) {
 			return;
 		}
 		synchronized (lock) {
-			tail = tail - (count - 2);
-			head = head - (count - 2);
+			tail = tail - num;
+			head = head - num;
 			if (head < 0) {
 				head = 0;
 				tail = count - 3;
@@ -434,12 +504,21 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 	 * @param e
 	 */
 	public void right(KeyEvent e) {
-		if (tail >= bars.size() - 1) {
+		right(count - 2);
+	}
+
+	/**
+	 * 右移num条K线
+	 * 
+	 * @param num
+	 */
+	private void right(int num) {
+		if (tail >= bars.size() - 1 || num < 1) {
 			return;
 		}
 		synchronized (lock) {
-			tail = tail + (count - 2);
-			head = head + (count - 2);
+			tail = tail + num;
+			head = head + num;
 			if (tail > bars.size() - 1) {
 				tail = bars.size() - 1;
 				head = tail - count + 3;
@@ -467,29 +546,62 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 		System.exit(0);
 	}
 
+	@Override
+	public void onBar(Bar bar) {
+	}
+
+	@Override
+	public void onBarInside(Bar bar) {
+		if (bar.isStart()) {
+			add(bar);
+		}
+	}
+
 	/**
 	 * @param bar
 	 */
 	public void add(Bar bar) {
-		// if (bar.isFinished()) {
-		// bars.add(bar);
-		// glbars.add(new GLBar(bar));
-		// } else {
-		// Bar last = bars.get(bars.size() - 1);
-		// last.setClose(bar.getClose());
-		// last.setHigh(bar.getHigh());
-		// last.setLow(bar.getLow());
-		// last.setEndTime(bar.getEndTime());
-		//
+		// if (!bar.isFinished()) {
+		// return;
 		// }
-		// lock.lock();
+
+		if (bars.isEmpty()) {
+			for (int n : MA_N) {
+				List<MA> list = new ArrayList<MA>(bars.size());
+				mas.put(n, list);
+			}
+			float[] white = { 1.0f, 1.0f, 1.0f };
+			colors.put(5, white);
+			float[] yellow = { 1.0f, 1.0f, 0.0f };
+			colors.put(10, yellow);
+			float[] purple = { 1.0f, 0.0f, 1.0f };
+			colors.put(20, purple);
+			float[] green = { 0.0f, 1.0f, 0.0f };
+			colors.put(40, green);
+			float[] gray = { 0.5f, 0.5f, 0.5f };
+			colors.put(60, gray);
+		}
 		bars.add(bar);
+		int size = bars.size();
 		glbars.add(new GLBar(this, bar));
+		sum += bar.getClose();
+		addMA(size - 1, sum, bar.getClose());
+
 		glcjls.add(new GLCJL(this, bar.getDealVol(), bar.getVol()));
-		head++;
-		tail++;
-		// lock.unlock();
-		refresh();
+
+		MACD macd = new MACD();
+		macd.caculate(macds.isEmpty() ? null : macds.get(size - 2), bar.getClose());
+		macds.add(macd);
+		synchronized (lock) {
+			if (size < count - 2) {
+				tail = size - 1;
+				head = 0;
+			} else {
+				head++;
+				tail++;
+			}
+			refresh();
+		}
 	}
 
 	/**
@@ -499,10 +611,10 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 		if (bars.isEmpty()) {
 			return;
 		}
-		int size = bars.size();
-		if (count > size) {
-			count = size;
-		}
+		// int size = bars.size();
+		// if (count > size) {
+		// count = size;
+		// }
 		for (int n : MA_N) {
 			List<MA> list = new ArrayList<MA>(bars.size());
 			mas.put(n, list);
@@ -535,8 +647,13 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 			last = macd;
 			index++;
 		}
+		int size = bars.size();
 		tail = size - 1;
-		head = tail - count + 3;
+		if (size < count - 2) {
+			head = 0;
+		} else {
+			head = tail - count + 3;
+		}
 	}
 
 	/**
@@ -564,9 +681,51 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 	}
 
 	/**
+	 * @param show
+	 */
+	public void refresh(boolean show) {
+		if (!show) {
+			return;
+		}
+		Bar bar = bars.get(tail);
+		if (bar.getClose() > high) {
+			high = bar.getClose();
+			this.mid = (high + low) / 2.0;
+			this.del = high - low;
+		}
+		if (bar.getClose() < low) {
+			low = bar.getClose();
+			this.mid = (high + low) / 2.0;
+			this.del = high - low;
+		}
+		float wid = span * barBound.delw * Constants.BAR_VALUE_SCALE;
+		GLBar glbar = glbars.get(tail);
+		float[] v = glbar.getClosef();
+		glbar.refresh(v[0], wid, mid, del);
+		// 刷新MA值
+		for (int n : MA_N) {
+			MA ma = mas.get(n).get(tail);
+			if (ma == null) {
+				continue;
+			}
+			ma.refresh(v[0], mid, del);
+		}
+
+		GLCJL cjl = glcjls.get(tail);
+		// cjl.refresh(v[0], wid, deal, mvol, dvol, bar.getOpen() <= bar.getClose());
+		MACD macd = macds.get(tail);
+		if (macd == null) {
+		}
+		// macd.refresh(v[0], mh);
+	}
+
+	/**
 	 * 刷新K线数据
 	 */
 	public void refresh() {
+		if (head == tail) {
+			return;
+		}
 		double high = Double.MIN_VALUE;
 		double low = Double.MAX_VALUE;
 		double mh = Double.MIN_VALUE;
@@ -601,6 +760,8 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 				mh = m;
 			}
 		}
+		this.high = high;
+		this.low = low;
 		this.macdMax = mh;
 		this.mid = (high + low) / 2.0;
 		this.del = high - low;
@@ -639,6 +800,7 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 	 * @param md
 	 */
 	public void add(MD md) {
+		computer.update(md);
 
 	}
 
@@ -847,7 +1009,7 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 	/**
 	 * 辅助监听器
 	 */
-	private class MyListener implements GLEventListener, KeyListener, MouseListener, MouseMoveListener {
+	private class MyListener implements GLEventListener, KeyListener, MouseListener, MouseMoveListener, MouseWheelListener {
 		/**
 		 * GL监听器
 		 */
@@ -864,6 +1026,10 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 		 * 鼠标移动监听器
 		 */
 		private List<MouseMoveListener> moveListeners = new ArrayList<MouseMoveListener>();
+		/**
+		 * 鼠标滚轮监听器
+		 */
+		private List<MouseWheelListener> wheelListeners = new ArrayList<MouseWheelListener>();
 
 		/**
 		 * @param listener
@@ -923,6 +1089,21 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 		 */
 		public MouseMoveListener removeMouseMoveListener(MouseMoveListener listener) {
 			return moveListeners.remove(listener) ? listener : null;
+		}
+
+		/**
+		 * @param listener
+		 */
+		public void addMouseWheelListener(MouseWheelListener listener) {
+			wheelListeners.add(listener);
+		}
+
+		/**
+		 * @param listener
+		 * @return MouseWheelListener
+		 */
+		public MouseWheelListener removeMouseWheelListener(MouseWheelListener listener) {
+			return wheelListeners.remove(listener) ? listener : null;
 		}
 
 		@Override
@@ -992,6 +1173,13 @@ public class GLDisplay extends PlotBase implements KeyListener, MouseListener, M
 		public void mouseMove(MouseEvent e) {
 			for (int i = 0; i < moveListeners.size(); i++) {
 				moveListeners.get(i).mouseMove(e);
+			}
+		}
+
+		@Override
+		public void mouseScrolled(MouseEvent e) {
+			for (int i = 0; i < wheelListeners.size(); i++) {
+				wheelListeners.get(i).mouseScrolled(e);
 			}
 		}
 	}

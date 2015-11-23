@@ -1,5 +1,6 @@
 package com.finance.util;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -110,11 +111,8 @@ public class BufferUtil {
 		bar.setLow(buffer.getDouble(47)); // 最低
 		bar.setDealVol(buffer.getInt(55)); // 成交量
 		bar.setVol(buffer.getInt(59)); // 持仓量
-		bar.setPriceChange(bar.getOpen() - bar.getClose());
-		if (bar.getOpen() != 0) {
-			bar.setPriceChangeRate(bar.getPriceChange() / bar.getOpen() * 100d);
-		}
-		bar.setFinished(true);
+		bar.updatePriceChange(); // 更新价格波动
+		bar.setStatus(2);
 		return bar;
 	}
 
@@ -171,7 +169,7 @@ public class BufferUtil {
 		List<Bar> bars = new ArrayList<Bar>();
 		DataInputStream dis = null;
 		try {
-			dis = new DataInputStream(new FileInputStream(file));
+			dis = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
 			byte[] data = new byte[BAR_BUFFER_NUM];
 			while (dis.read(data) != -1) {
 				Bar bar = bytes2Bar(data);
@@ -279,7 +277,7 @@ public class BufferUtil {
 		return buffer.array();
 	}
 
-	/** 
+	/**
 	 * MD转成字符流
 	 * 
 	 * @param md

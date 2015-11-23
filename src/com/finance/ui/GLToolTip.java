@@ -249,7 +249,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 			return;
 		}
 		// 此时还未转变为左下角原点
-		if (e.x < barBound.x || e.x > detailBound.x || e.y < Constants.UP_SPAN|| height -e.y <= Constants.DOWN_SPAN) {
+		if (e.x < barBound.x || e.x > detailBound.x || e.y < Constants.UP_SPAN || height - e.y <= Constants.DOWN_SPAN) {
 			return;
 		}
 		int len = bars.size() - 1;
@@ -517,6 +517,9 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 	 * @param gl
 	 */
 	private void drawBarMessage(GL2 gl) {
+		if (bars.isEmpty()) {
+			return;
+		}
 		gl.glViewport(barBound.x, barBound.y, barBound.width, barBound.height);
 		StringBuffer sb = new StringBuffer();
 		sb.append("MA(");
@@ -525,7 +528,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 		}
 		sb.delete(sb.length() - 1, sb.length());
 		sb.append(")");
-		float y = barBound.toyf(barBound.height - 2 * Constants.SHOW_VALUE_SPAN);
+		float y = barBound.toyf(barBound.height - 4 * Constants.SHOW_VALUE_SPAN);
 		int x = Constants.SHOW_VALUE_SPAN;
 		gl.glColor3f(1.0f, 1.0f, 0.0f);
 		gl.glRasterPos2f(barBound.toxf(Constants.SHOW_VALUE_SPAN), y);
@@ -555,6 +558,9 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 	 * @param gl
 	 */
 	private void drawCJLMessage(GL2 gl) {
+		if (bars.isEmpty()) {
+			return;
+		}
 		gl.glViewport(dealBound.x, dealBound.y, dealBound.width, dealBound.height);
 		float y = dealBound.toyf(dealBound.height - 4 * Constants.SHOW_VALUE_SPAN);
 		gl.glColor3f(1.0f, 1.0f, 0.0f);
@@ -573,6 +579,9 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 	 * @param gl
 	 */
 	private void drawMACDMessage(GL2 gl) {
+		if (bars.isEmpty()) {
+			return;
+		}
 		gl.glViewport(macdBound.x, macdBound.y, macdBound.width, macdBound.height);
 		float y = macdBound.toyf(macdBound.height - 4 * Constants.SHOW_VALUE_SPAN);
 		MACD macd = macds.get(index);

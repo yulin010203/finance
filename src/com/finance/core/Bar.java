@@ -66,9 +66,9 @@ public class Bar {
 	 */
 	private String format;
 	/**
-	 * K线周期是否结束
+	 * K线状态(开始0/中间1/结束2)
 	 */
-	private boolean finished;
+	private int status = 0;
 
 	/**
 	 * @return the code
@@ -318,18 +318,49 @@ public class Bar {
 	 * 
 	 * @return xxx
 	 */
-	public boolean isFinished() {
-		return finished;
+	public boolean isStart() {
+		return status == 0;
 	}
 
 	/**
-	 * 设置xxx
+	 * 获取xxx
 	 * 
-	 * @param finished
+	 * @return xxx
+	 */
+	public boolean isMidddle() {
+		return status == 1;
+	}
+
+	/**
+	 * 获取xxx
+	 * 
+	 * @return xxx
+	 */
+	public boolean isEnd() {
+		return status == 2;
+	}
+
+	/**
+	 * 设置 xxx
+	 * 
+	 * @param status
 	 *            xxx
 	 */
-	public void setFinished(boolean finished) {
-		this.finished = finished;
+	public void setStatus(int status) {
+		this.status = status;
+		if (status != 0 || status != 1) {
+			this.status = 2;
+		}
+	}
+
+	/**
+	 * 更新价格波动
+	 */
+	public void updatePriceChange() {
+		this.priceChange = open - close;
+		if (open != 0) {
+			this.priceChangeRate = this.priceChange / this.open * 100d;
+		}
 	}
 
 	/**
@@ -338,7 +369,7 @@ public class Bar {
 	 * @return time
 	 */
 	public String time2Str() {
-		if (timeFormat == null) {
+		if (timeFormat == null || !isEnd()) {
 			if (period >= 3600 * 1000) {
 				timeFormat = TimeUtil.date2Str3(new Date(startTime));
 			} else {
@@ -354,7 +385,7 @@ public class Bar {
 	 * @return time
 	 */
 	public String date2Str() {
-		if (format == null) {
+		if (format == null || !isEnd()) {
 			format = TimeUtil.date2Str2(new Date(startTime)) + "~" + TimeUtil.time2Str2(new Date(endTime));
 		}
 		return format;

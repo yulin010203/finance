@@ -81,7 +81,7 @@ public class GLBar {
 	 * @param gl2
 	 */
 	public void refresh(GL2 gl2) {
-		if (!bar.isFinished()) {
+		if (!bar.isEnd()) {
 			refresh();
 		}
 		refresh(gl2, k);
@@ -166,9 +166,6 @@ public class GLBar {
 		// gl2.glFlush();
 	}
 
-	public Bar getBar(){
-		return bar;
-	}
 	/**
 	 * 返回K线收盘价的坐标
 	 * 
