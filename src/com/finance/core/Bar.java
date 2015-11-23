@@ -348,9 +348,6 @@ public class Bar {
 	 */
 	public void setStatus(int status) {
 		this.status = status;
-		if (status != 0 || status != 1) {
-			this.status = 2;
-		}
 	}
 
 	/**

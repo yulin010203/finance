@@ -55,6 +55,15 @@ public class GLCJL {
 	}
 
 	/**
+	 * @param dealVol
+	 * @param vol
+	 */
+	public void refresh(int dealVol, int vol) {
+		this.dealVol = dealVol;
+		this.vol = vol;
+	}
+
+	/**
 	 * @param x
 	 * @param span
 	 * @param deal

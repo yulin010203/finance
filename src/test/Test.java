@@ -1,6 +1,9 @@
 package test;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.List;
 
 import org.eclipse.swt.SWT;
@@ -9,6 +12,8 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
 import com.finance.core.Bar;
+import com.finance.core.BarCycle;
+import com.finance.core.MD;
 import com.finance.ui.GLBackground;
 import com.finance.ui.GLBarPlot;
 import com.finance.ui.GLCJLPlot;
@@ -41,25 +46,48 @@ public class Test {
 		gl.addGLEventListener(new GLMACDPlot(gl));
 		GLToolTip tip = new GLToolTip(gl);
 		long start = System.currentTimeMillis();
-		final List<Bar> bars = BarReadTest.parse(new File("IF0002.txt"), 60 * 1000);
-		// List<Bar> bars = BufferUtil.read(new File("IF0002.dat"));
+		// final List<Bar> bars = BarReadTest.parse(new File("IF0002.txt"), 60 *
+		// 1000);
+//		 List<Bar> bars = BufferUtil.read(new File("IF0002.dat"));
 		long end = System.currentTimeMillis();
 		System.out.println(end - start);
-		 gl.addAll(bars);
-//		new Thread(new Runnable() {
-//			@Override
-//			public void run() {
-//				try {
-//					for (int i = 0; i < bars.size(); i++) {
-//						Bar bar = bars.get(i);
-//						gl.add(bar);
-//						Thread.sleep(500);
-//					}
-//				} catch (InterruptedException e) {
-//					System.out.println(e);
-//				}
-//			}
-//		}).start();
+//		 gl.addAll(bars);
+		// new Thread(new Runnable() {
+		// @Override
+		// public void run() {
+		// try {
+		// for (int i = 0; i < bars.size(); i++) {
+		// Bar bar = bars.get(i);
+		// gl.add(bar);
+		// Thread.sleep(500);
+		// }
+		// } catch (InterruptedException e) {
+		// System.out.println(e);
+		// }
+		// }
+		// }).start();
+		gl.addBarListener(new BarCycle("IF0000", 60000));
+		new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				DataInputStream dis = null;
+				try {
+					dis = new DataInputStream(new BufferedInputStream(new FileInputStream(new File("E:/data/data/IF0000.dat"))));
+					byte[] data = new byte[BufferUtil.MD_BUFFER_NUM];
+					while (dis.read(data) != -1) {
+						final MD md = BufferUtil.bytes2MD(data);
+						md.setCode("IF0000");
+						gl.add(md);
+						Thread.sleep(1);
+					}
+					dis.close();
+				} catch (Exception e) {
+					System.out.println(e);
+					throw new RuntimeException(e);
+				}
+			}
+		}).start();
 		gl.addGLEventListener(tip);
 		gl.addKeyListener(tip);
 		gl.addMouseListener(tip);
@@ -73,7 +101,8 @@ public class Test {
 
 		// GLUT glut = new GLUT();
 		// int len = glut.glutBitmapLength(GLUT.BITMAP_HELVETICA_12, "39000");
-		// int len = glut.glutBitmapLength(GLUT.BITMAP_HELVETICA_12, " 09:47:48 1420.0   2  0     ");
+		// int len = glut.glutBitmapLength(GLUT.BITMAP_HELVETICA_12, " 09:47:48
+		// 1420.0 2 0 ");
 		// System.out.println(len);
 	}
 }

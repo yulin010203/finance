@@ -79,7 +79,9 @@ public class GLBarPlot implements GLEventListener {
 			}
 			bar.refresh(gl);
 		}
+		// if (display.isShowMA()) {
 		refresh(gl, head, tail);
+		// }
 		gl.glFlush();
 	}
 

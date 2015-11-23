@@ -26,6 +26,7 @@ import org.eclipse.swt.widgets.Shell;
 
 import com.finance.core.Bar;
 import com.finance.core.BarComputer;
+import com.finance.core.BarCycle;
 import com.finance.core.Bound;
 import com.finance.core.Constants;
 import com.finance.core.MD;
@@ -132,6 +133,10 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	 */
 	private boolean showTip;
 	/**
+	 * 显示MA指标
+	 */
+	private boolean showMA = true;
+	/**
 	 * plot中K线开始位置
 	 */
 	private int head;
@@ -160,6 +165,15 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	 */
 	private int deal;
 	/**
+	 * 持仓量最大值
+	 */
+	private int hvol;
+	/**
+	 * 持仓量最小值
+	 */
+	private int lvol;
+
+	/**
 	 * 图区macd最大值
 	 */
 	private double macdMax;
@@ -175,6 +189,10 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	 * K线计算器
 	 */
 	private BarComputer computer;
+	/**
+	 * 上一条tick最新价
+	 */
+	private double lastPrice;
 	/**
 	 * 画面更新锁
 	 */
@@ -281,6 +299,13 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	 */
 	public void addMouseWheelListener(MouseWheelListener listener) {
 		this.listener.addMouseWheelListener(listener);
+	}
+
+	/**
+	 * @param cycle
+	 */
+	public void addBarListener(BarCycle cycle) {
+		computer.addBarListener(cycle, this);
 	}
 
 	/**
@@ -454,7 +479,7 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	 * @param e
 	 */
 	private synchronized void zoomOut() {
-		if (count <= Constants.BAR_SHOW_NUM_MIN) {
+		if (count <= Constants.BAR_SHOW_NUM_MIN || bars.size() < Constants.BAR_SHOW_NUM_MIN) {
 			// 已经缩小到最小
 			return;
 		}
@@ -464,7 +489,14 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 				count = Constants.BAR_SHOW_NUM_MIN;
 			}
 			tail -= count / 2;
+			if (tail > bars.size() - 1) {
+				tail = bars.size() - 1;
+			}
 			head = tail - count + 3;
+			if (head < 0) {
+				head = 0;
+				tail = count - 3;
+			}
 			refresh();
 		}
 	}
@@ -553,8 +585,16 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	@Override
 	public void onBarInside(Bar bar) {
 		if (bar.isStart()) {
+			if (!bars.isEmpty()) {
+				Bar last = bars.get(bars.size() - 1);
+				sum += last.getClose() - last.getOpen();
+			}
 			add(bar);
+			System.out.println("sum=" + sum + ", last" + bar.getClose());
+		} else {
+			refresh(true);
 		}
+		this.lastPrice = bar.getClose();
 	}
 
 	/**
@@ -704,28 +744,50 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 		glbar.refresh(v[0], wid, mid, del);
 		// 刷新MA值
 		for (int n : MA_N) {
-			MA ma = mas.get(n).get(tail);
+			List<MA> list = mas.get(n);
+			MA ma = list.get(tail);
 			if (ma == null) {
 				continue;
+			}
+			if (tail == n - 1) {
+				ma.caculate(sum - lastPrice + bar.getClose());
+			} else {
+				ma.caculate(list.get(tail - 1).getMa(), lastPrice, bar.getClose());
+				// System.out.println("n=" + n + ", ma=" + ma.getMa() + ", sum=" + sum + ", last=" + lastPrice + ",
+				// close=" + bar.getClose());
 			}
 			ma.refresh(v[0], mid, del);
 		}
 
-		GLCJL cjl = glcjls.get(tail);
-		// cjl.refresh(v[0], wid, deal, mvol, dvol, bar.getOpen() <= bar.getClose());
-		MACD macd = macds.get(tail);
-		if (macd == null) {
+		if (bar.getVol() > hvol) {
+			hvol = bar.getVol();
 		}
-		// macd.refresh(v[0], mh);
+		if (bar.getVol() < lvol) {
+			lvol = bar.getVol();
+		}
+		int mvol = (hvol + lvol) / 2;
+		int dvol = hvol - lvol;
+		GLCJL cjl = glcjls.get(tail);
+		cjl.refresh(bar.getDealVol(), bar.getVol());
+		cjl.refresh(v[0], wid, deal, mvol, dvol, bar.getOpen() <= bar.getClose());
+		MACD macd = macds.get(tail);
+		if (macd != null) {
+			MACD last = null;
+			if (tail >= 1) {
+				last = macds.get(tail - 1);
+			}
+			macd.caculate(last, bar.getClose());
+			macd.refresh(v[0], macdMax);
+		}
 	}
 
 	/**
 	 * 刷新K线数据
 	 */
 	public void refresh() {
-		if (head == tail) {
-			return;
-		}
+		// if (head == tail) {
+		// return;
+		// }
 		double high = Double.MIN_VALUE;
 		double low = Double.MAX_VALUE;
 		double mh = Double.MIN_VALUE;
@@ -765,6 +827,8 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 		this.macdMax = mh;
 		this.mid = (high + low) / 2.0;
 		this.del = high - low;
+		this.hvol = hvol;
+		this.lvol = lvol;
 		int mvol = (hvol + lvol) / 2;
 		int dvol = hvol - lvol;
 		// K线宽度
@@ -801,7 +865,6 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	 */
 	public void add(MD md) {
 		computer.update(md);
-
 	}
 
 	/**
@@ -993,6 +1056,13 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	 */
 	public float getSpan() {
 		return span;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public boolean isShowMA() {
+		return showMA;
 	}
 
 	/**

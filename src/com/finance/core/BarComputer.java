@@ -37,11 +37,6 @@ public class BarComputer {
 	 */
 	private Map<BarCycle, Context> contexts = new ConcurrentHashMap<BarCycle, BarComputer.Context>();
 	/**
-	 * K线缓存
-	 */
-	private List<Bar> bars = new ArrayList<Bar>();
-
-	/**
 	 * @param md
 	 */
 	public void update(final MD md) {
