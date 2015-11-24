@@ -81,9 +81,9 @@ public class GLBar {
 	 * @param gl2
 	 */
 	public void refresh(GL2 gl2) {
-		if (!bar.isEnd()) {
-			refresh();
-		}
+//		if (!bar.isEnd()) {
+//			refresh();
+//		}
 		refresh(gl2, k);
 	}
 

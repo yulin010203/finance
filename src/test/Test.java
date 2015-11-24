@@ -48,24 +48,24 @@ public class Test {
 		long start = System.currentTimeMillis();
 		// final List<Bar> bars = BarReadTest.parse(new File("IF0002.txt"), 60 *
 		// 1000);
-//		 List<Bar> bars = BufferUtil.read(new File("IF0002.dat"));
+//		final List<Bar> bars = BufferUtil.read(new File("IF0002.dat"));
 		long end = System.currentTimeMillis();
 		System.out.println(end - start);
-//		 gl.addAll(bars);
-		// new Thread(new Runnable() {
-		// @Override
-		// public void run() {
-		// try {
-		// for (int i = 0; i < bars.size(); i++) {
-		// Bar bar = bars.get(i);
-		// gl.add(bar);
-		// Thread.sleep(500);
-		// }
-		// } catch (InterruptedException e) {
-		// System.out.println(e);
-		// }
-		// }
-		// }).start();
+		// gl.addAll(bars);
+//		new Thread(new Runnable() {
+//			@Override
+//			public void run() {
+//				try {
+//					for (int i = 0; i < bars.size(); i++) {
+//						Bar bar = bars.get(i);
+//						gl.add(bar);
+//						Thread.sleep(1000);
+//					}
+//				} catch (InterruptedException e) {
+//					System.out.println(e);
+//				}
+//			}
+//		}).start();
 		gl.addBarListener(new BarCycle("IF0000", 60000));
 		new Thread(new Runnable() {
 
@@ -73,13 +73,13 @@ public class Test {
 			public void run() {
 				DataInputStream dis = null;
 				try {
-					dis = new DataInputStream(new BufferedInputStream(new FileInputStream(new File("E:/data/data/IF0000.dat"))));
+					dis = new DataInputStream(new BufferedInputStream(new FileInputStream(new File("E:/data/IF0000.dat"))));
 					byte[] data = new byte[BufferUtil.MD_BUFFER_NUM];
 					while (dis.read(data) != -1) {
 						final MD md = BufferUtil.bytes2MD(data);
 						md.setCode("IF0000");
 						gl.add(md);
-						Thread.sleep(1);
+						Thread.sleep(5);
 					}
 					dis.close();
 				} catch (Exception e) {

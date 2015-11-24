@@ -1,6 +1,8 @@
 package com.finance.core;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import com.finance.util.TimeUtil;
 
@@ -69,6 +71,10 @@ public class Bar {
 	 * K线状态(开始0/中间1/结束2)
 	 */
 	private int status = 0;
+	/**
+	 * 对应tick数据
+	 */
+	private List<MD> mds = new ArrayList<MD>();
 
 	/**
 	 * @return the code
@@ -348,6 +354,24 @@ public class Bar {
 	 */
 	public void setStatus(int status) {
 		this.status = status;
+	}
+
+	/**
+	 * 添加 xxx
+	 * 
+	 * @param md
+	 */
+	public void add(MD md) {
+		this.mds.add(md);
+	}
+
+	/**
+	 * 获取 xxx
+	 *
+	 * @return xxx
+	 */
+	public List<MD> getMds() {
+		return mds;
 	}
 
 	/**

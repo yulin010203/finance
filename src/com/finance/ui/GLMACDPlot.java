@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.eclipse.ui.internal.presentations.SystemMenuCloseOthers;
 
 import com.finance.core.Bound;
 import com.finance.core.indicator.MACD;

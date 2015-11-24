@@ -156,6 +156,7 @@ public class BarComputer {
 			this.start = getTime(md.getTimeStamp());
 			this.bar = createBar(md);
 			this.bar.setStartTime(start);
+			this.bar.add(md);
 			if (last == null) {
 				last = md;
 			}
@@ -183,6 +184,7 @@ public class BarComputer {
 					bar.setDealVol(bar.getDealVol() + md.getDealVol() - last.getDealVol()); // bar内成交量
 				}
 				bar.updatePriceChange();
+				bar.add(md);
 			} else if (current > start) {
 				start = current;
 				bar.setEndTime(current);

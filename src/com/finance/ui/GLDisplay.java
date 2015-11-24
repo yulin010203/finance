@@ -190,10 +190,6 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	 */
 	private BarComputer computer;
 	/**
-	 * 上一条tick最新价
-	 */
-	private double lastPrice;
-	/**
 	 * 画面更新锁
 	 */
 	private final Object lock = new Object();
@@ -580,6 +576,9 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 
 	@Override
 	public void onBar(Bar bar) {
+		if (tail != bars.size() - 1) {
+			refresh(false);
+		}
 	}
 
 	@Override
@@ -590,21 +589,15 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 				sum += last.getClose() - last.getOpen();
 			}
 			add(bar);
-			System.out.println("sum=" + sum + ", last" + bar.getClose());
 		} else {
-			refresh(true);
+			refresh(tail == bars.size() - 1);
 		}
-		this.lastPrice = bar.getClose();
 	}
 
 	/**
 	 * @param bar
 	 */
 	public void add(Bar bar) {
-		// if (!bar.isFinished()) {
-		// return;
-		// }
-
 		if (bars.isEmpty()) {
 			for (int n : MA_N) {
 				List<MA> list = new ArrayList<MA>(bars.size());
@@ -651,10 +644,6 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 		if (bars.isEmpty()) {
 			return;
 		}
-		// int size = bars.size();
-		// if (count > size) {
-		// count = size;
-		// }
 		for (int n : MA_N) {
 			List<MA> list = new ArrayList<MA>(bars.size());
 			mas.put(n, list);
@@ -724,59 +713,68 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	 * @param show
 	 */
 	public void refresh(boolean show) {
-		if (!show) {
-			return;
-		}
-		Bar bar = bars.get(tail);
-		if (bar.getClose() > high) {
-			high = bar.getClose();
-			this.mid = (high + low) / 2.0;
-			this.del = high - low;
-		}
-		if (bar.getClose() < low) {
-			low = bar.getClose();
-			this.mid = (high + low) / 2.0;
-			this.del = high - low;
-		}
-		float wid = span * barBound.delw * Constants.BAR_VALUE_SCALE;
-		GLBar glbar = glbars.get(tail);
-		float[] v = glbar.getClosef();
-		glbar.refresh(v[0], wid, mid, del);
+		int index = bars.size() - 1;
+		Bar bar = bars.get(index);
 		// 刷新MA值
 		for (int n : MA_N) {
 			List<MA> list = mas.get(n);
-			MA ma = list.get(tail);
+			MA ma = list.get(index);
 			if (ma == null) {
 				continue;
 			}
-			if (tail == n - 1) {
-				ma.caculate(sum - lastPrice + bar.getClose());
+			if (index == n - 1) {
+				ma.caculate(sum - bar.getOpen() + bar.getClose());
 			} else {
-				ma.caculate(list.get(tail - 1).getMa(), lastPrice, bar.getClose());
-				// System.out.println("n=" + n + ", ma=" + ma.getMa() + ", sum=" + sum + ", last=" + lastPrice + ",
-				// close=" + bar.getClose());
+				ma.caculate(list.get(index - 1).getMa(), bars.get(index - n).getClose(), bar.getClose());
 			}
-			ma.refresh(v[0], mid, del);
 		}
-
-		if (bar.getVol() > hvol) {
-			hvol = bar.getVol();
-		}
-		if (bar.getVol() < lvol) {
-			lvol = bar.getVol();
-		}
-		int mvol = (hvol + lvol) / 2;
-		int dvol = hvol - lvol;
-		GLCJL cjl = glcjls.get(tail);
+		// 刷新成交量值
+		GLCJL cjl = glcjls.get(index);
 		cjl.refresh(bar.getDealVol(), bar.getVol());
-		cjl.refresh(v[0], wid, deal, mvol, dvol, bar.getOpen() <= bar.getClose());
-		MACD macd = macds.get(tail);
-		if (macd != null) {
-			MACD last = null;
-			if (tail >= 1) {
-				last = macds.get(tail - 1);
+		// 刷新MACD值
+		MACD macd = macds.get(index);
+		MACD last = null;
+		if (index >= 1) {
+			last = macds.get(index - 1);
+		}
+		macd.caculate(last, bar.getClose());
+
+		// 是否刷新坐标
+		if (show) {
+			if (bar.getClose() > high) {
+				high = bar.getClose();
+				this.mid = (high + low) / 2.0;
+				this.del = high - low;
 			}
-			macd.caculate(last, bar.getClose());
+			if (bar.getClose() < low) {
+				low = bar.getClose();
+				this.mid = (high + low) / 2.0;
+				this.del = high - low;
+			}
+			float wid = span * barBound.delw * Constants.BAR_VALUE_SCALE;
+			GLBar glbar = glbars.get(index);
+			float[] v = glbar.getClosef();
+			glbar.refresh(v[0], wid, mid, del);
+			// 刷新MA坐标
+			for (int n : MA_N) {
+				List<MA> list = mas.get(n);
+				MA ma = list.get(index);
+				if (ma == null) {
+					continue;
+				}
+				ma.refresh(v[0], mid, del);
+			}
+			// 刷新成交量坐标
+			if (bar.getVol() > hvol) {
+				hvol = bar.getVol();
+			}
+			if (bar.getVol() < lvol) {
+				lvol = bar.getVol();
+			}
+			int mvol = (hvol + lvol) / 2;
+			int dvol = hvol - lvol;
+			cjl.refresh(v[0], wid, deal, mvol, dvol, bar.getOpen() <= bar.getClose());
+			// 刷新MACD坐标
 			macd.refresh(v[0], macdMax);
 		}
 	}
@@ -785,9 +783,9 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	 * 刷新K线数据
 	 */
 	public void refresh() {
-		// if (head == tail) {
-		// return;
-		// }
+		if (bars.isEmpty()) {
+			return;
+		}
 		double high = Double.MIN_VALUE;
 		double low = Double.MAX_VALUE;
 		double mh = Double.MIN_VALUE;
