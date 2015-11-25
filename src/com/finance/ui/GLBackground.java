@@ -130,33 +130,34 @@ public class GLBackground extends PlotBase implements GLEventListener {
 
 		int dcount = display.getCount() / 6;
 		List<Bar> bars = display.getBars();
+		int len = bars.size() - 1;
 		int index = display.getHead() + dcount;
-		if (index > bars.size() - 1) {
+		if (index > len) {
 			return;
 		}
 		gl.glColor3f(0.5f, 0.5f, 0.5f);
 		gl.glRasterPos2f(x1, y);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, bars.get(index).time2Str());
 		index += dcount;
-		if (index > bars.size() - 1) {
+		if (index > len) {
 			return;
 		}
 		gl.glRasterPos2f(x2, y);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, bars.get(index).time2Str());
 		index += dcount;
-		if (index > bars.size() - 1) {
+		if (index > len) {
 			return;
 		}
 		gl.glRasterPos2f(x3, y);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, bars.get(index).time2Str());
 		index += dcount;
-		if (index > bars.size() - 1) {
+		if (index > len) {
 			return;
 		}
 		gl.glRasterPos2f(x4, y);
 		glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, bars.get(index).time2Str());
 		index += dcount;
-		if (index > bars.size() - 1) {
+		if (index > len) {
 			return;
 		}
 		gl.glRasterPos2f(x5, y);
@@ -316,7 +317,7 @@ public class GLBackground extends PlotBase implements GLEventListener {
 		detailBound.delh = 1.0f / ((detailBound.height - 1.0f) * 0.5f);
 
 		// 刷新坐标数据
-		display.refresh();
+		display.refreshAll();
 	}
 
 }

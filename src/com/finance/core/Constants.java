@@ -38,7 +38,7 @@ public class Constants {
 	/**
 	 * 最小显示条数
 	 */
-	public static final int BAR_SHOW_NUM_MIN = 30;
+	public static final int BAR_SHOW_NUM_MIN = 15;
 	/**
 	 * 默认展示K线条数
 	 */

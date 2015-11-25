@@ -517,7 +517,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 	 * @param gl
 	 */
 	private void drawBarMessage(GL2 gl) {
-		if (bars.isEmpty()) {
+		if (bars.isEmpty() || mas.isEmpty()) {
 			return;
 		}
 		gl.glViewport(barBound.x, barBound.y, barBound.width, barBound.height);
@@ -538,12 +538,17 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 		for (int n : GLDisplay.MA_N) {
 			float[] color = colors.get(n);
 			gl.glColor3f(color[0], color[1], color[2]);
-			MA ma = mas.get(n).get(index);
 			String msg = "MA" + n + " ";
-			if (ma == null) {
+			List<MA> list = mas.get(n);
+			if (list.isEmpty()) {
 				msg += "0.00";
 			} else {
-				msg += MathUtil.round(ma.getMa(), 2);
+				MA ma = list.get(index);
+				if (ma == null) {
+					msg += "0.00";
+				} else {
+					msg += MathUtil.round(ma.getMa(), 2);
+				}
 			}
 			gl.glRasterPos2f(barBound.toxf(x), y);
 			glut.glutBitmapString(GLUT.BITMAP_HELVETICA_12, msg);
@@ -558,7 +563,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 	 * @param gl
 	 */
 	private void drawCJLMessage(GL2 gl) {
-		if (bars.isEmpty()) {
+		if (bars.isEmpty() || glcjls.isEmpty()) {
 			return;
 		}
 		gl.glViewport(dealBound.x, dealBound.y, dealBound.width, dealBound.height);
@@ -579,7 +584,7 @@ public class GLToolTip extends PlotBase implements GLEventListener, KeyListener,
 	 * @param gl
 	 */
 	private void drawMACDMessage(GL2 gl) {
-		if (bars.isEmpty()) {
+		if (bars.isEmpty() || macds.isEmpty()) {
 			return;
 		}
 		gl.glViewport(macdBound.x, macdBound.y, macdBound.width, macdBound.height);

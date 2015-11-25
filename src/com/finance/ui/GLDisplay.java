@@ -429,7 +429,6 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 
 	@Override
 	public void mouseScrolled(MouseEvent e) {
-		// if (e.button == SWT.MouseWheel && e.stateMask != SWT.CTRL) {
 		if (e.stateMask != SWT.CTRL) {
 			if (e.count < 0) {
 				zoomIn();
@@ -464,8 +463,11 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 			if (head < 0) {
 				head = 0;
 				tail = count - 3;
+				if (tail > size - 1) {
+					tail = size - 1;
+				}
 			}
-			refresh();
+			refreshAll();
 		}
 	}
 
@@ -484,16 +486,20 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 			if (count < Constants.BAR_SHOW_NUM_MIN) {
 				count = Constants.BAR_SHOW_NUM_MIN;
 			}
+			int size = bars.size();
 			tail -= count / 2;
-			if (tail > bars.size() - 1) {
-				tail = bars.size() - 1;
+			if (tail > size - 1) {
+				tail = size - 1;
 			}
 			head = tail - count + 3;
 			if (head < 0) {
 				head = 0;
 				tail = count - 3;
+				if (tail > size - 1) {
+					tail = size - 1;
+				}
 			}
-			refresh();
+			refreshAll();
 		}
 	}
 
@@ -522,7 +528,7 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 				head = 0;
 				tail = count - 3;
 			}
-			refresh();
+			refreshAll();
 		}
 	}
 
@@ -551,7 +557,7 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 				tail = bars.size() - 1;
 				head = tail - count + 3;
 			}
-			refresh();
+			refreshAll();
 		}
 	}
 
@@ -577,7 +583,7 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	@Override
 	public void onBar(Bar bar) {
 		if (tail != bars.size() - 1) {
-			refresh(false);
+			update();
 		}
 	}
 
@@ -590,8 +596,9 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 			}
 			add(bar);
 		} else {
-			refresh(tail == bars.size() - 1);
+			update();
 		}
+		refresh();
 	}
 
 	/**
@@ -600,7 +607,7 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	public void add(Bar bar) {
 		if (bars.isEmpty()) {
 			for (int n : MA_N) {
-				List<MA> list = new ArrayList<MA>(bars.size());
+				List<MA> list = new ArrayList<MA>();
 				mas.put(n, list);
 			}
 			float[] white = { 1.0f, 1.0f, 1.0f };
@@ -632,8 +639,9 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 			} else {
 				head++;
 				tail++;
+				refreshAll();
 			}
-			refresh();
+
 		}
 	}
 
@@ -710,9 +718,9 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 	}
 
 	/**
-	 * @param show
+	 * 刷新数据值
 	 */
-	public void refresh(boolean show) {
+	private void update() {
 		int index = bars.size() - 1;
 		Bar bar = bars.get(index);
 		// 刷新MA值
@@ -738,51 +746,72 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 			last = macds.get(index - 1);
 		}
 		macd.caculate(last, bar.getClose());
+	}
 
-		// 是否刷新坐标
-		if (show) {
-			if (bar.getClose() > high) {
-				high = bar.getClose();
-				this.mid = (high + low) / 2.0;
-				this.del = high - low;
-			}
-			if (bar.getClose() < low) {
-				low = bar.getClose();
-				this.mid = (high + low) / 2.0;
-				this.del = high - low;
-			}
-			float wid = span * barBound.delw * Constants.BAR_VALUE_SCALE;
-			GLBar glbar = glbars.get(index);
-			float[] v = glbar.getClosef();
-			glbar.refresh(v[0], wid, mid, del);
-			// 刷新MA坐标
-			for (int n : MA_N) {
-				List<MA> list = mas.get(n);
-				MA ma = list.get(index);
-				if (ma == null) {
-					continue;
-				}
-				ma.refresh(v[0], mid, del);
-			}
-			// 刷新成交量坐标
-			if (bar.getVol() > hvol) {
-				hvol = bar.getVol();
-			}
-			if (bar.getVol() < lvol) {
-				lvol = bar.getVol();
-			}
-			int mvol = (hvol + lvol) / 2;
-			int dvol = hvol - lvol;
-			cjl.refresh(v[0], wid, deal, mvol, dvol, bar.getOpen() <= bar.getClose());
-			// 刷新MACD坐标
-			macd.refresh(v[0], macdMax);
+	/**
+	 * 增量刷新坐标值
+	 */
+	public synchronized void refresh() {
+		int index = bars.size() - 1;
+		Bar bar = bars.get(index);
+		boolean repaint = false;
+		// 范围值发生突破，则全量刷新
+		if (bar.getHigh() > high) {
+			high = bar.getHigh();
+			this.mid = (high + low) / 2.0;
+			this.del = high - low;
+			repaint = true;
 		}
+		if (bar.getLow() < low) {
+			low = bar.getLow();
+			this.mid = (high + low) / 2.0;
+			this.del = high - low;
+			repaint = true;
+		}
+		if (deal < bar.getDealVol()) {
+			deal = bar.getDealVol();
+			repaint = true;
+		}
+		// 刷新成交量坐标
+		if (bar.getVol() > hvol) {
+			hvol = bar.getVol();
+			repaint = true;
+		}
+		if (bar.getVol() < lvol) {
+			lvol = bar.getVol();
+			repaint = true;
+		}
+		if (repaint) {
+			refreshAll();
+			return;
+		}
+		float wid = span * barBound.delw * Constants.BAR_VALUE_SCALE;
+		GLBar glbar = glbars.get(index);
+		int x = (int) ((index - head) * span + span / 2.0f + 1);
+		float xf = barBound.toxf(x);
+		glbar.refresh(xf, wid, mid, del);
+		// 刷新MA坐标
+		for (int n : MA_N) {
+			List<MA> list = mas.get(n);
+			MA ma = list.get(index);
+			if (ma == null) {
+				continue;
+			}
+			ma.refresh(xf, mid, del);
+		}
+		int mvol = (hvol + lvol) / 2;
+		int dvol = hvol - lvol;
+		GLCJL cjl = glcjls.get(index);
+		cjl.refresh(xf, wid, deal, mvol, dvol, bar.getOpen() <= bar.getClose());
+		// 刷新MACD坐标
+		MACD macd = macds.get(index);
+		macd.refresh(xf, macdMax);
 	}
 
 	/**
 	 * 刷新K线数据
 	 */
-	public void refresh() {
+	public synchronized void refreshAll() {
 		if (bars.isEmpty()) {
 			return;
 		}
@@ -811,13 +840,14 @@ public class GLDisplay extends PlotBase implements BarListener, KeyListener, Mou
 			if (lvol > bar.getVol()) {
 				lvol = bar.getVol();
 			}
-
-			MACD macd = macds.get(i);
-			double max = MathUtil.max(macd.getDif(), macd.getDea(), macd.getDel());
-			double min = MathUtil.min(macd.getDif(), macd.getDea(), macd.getDel());
-			double m = Math.max(max, -min);
-			if (mh < m) {
-				mh = m;
+			if (!macds.isEmpty()) {
+				MACD macd = macds.get(i);
+				double max = MathUtil.max(macd.getDif(), macd.getDea(), macd.getDel());
+				double min = MathUtil.min(macd.getDif(), macd.getDea(), macd.getDel());
+				double m = Math.max(max, -min);
+				if (mh < m) {
+					mh = m;
+				}
 			}
 		}
 		this.high = high;
